@@ -5,15 +5,14 @@ import { hasTokens } from '@/parsers/merge';
 
 const MARKERS = markerBuffers('"usage"');
 
-// ZCode writes one JSONL file per session at <config>/cli/rollout/
-// model-io-sess_<id>.jsonl. Every line is one model API call of type
-// "model_io" carrying the full request and response, with the token
-// usage under response.usage (inputTokens, outputTokens,
-// cacheReadTokens, reasoningTokens). A retried request is logged again
-// with the same requestId and a higher attempt number, and the file is
-// append-ordered, so the last line seen for a request id is the final
-// attempt. Nothing from the request/response payload (prompts, answers,
-// tool output) is read into the record.
+interface Tokens {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  reasoningTokens: number;
+}
+
 function modelOf(entry: JsonObject): string | null {
   return (
     text(child(entry, 'response'), 'modelId') ??
@@ -25,11 +24,32 @@ function modelOf(entry: JsonObject): string | null {
 function recordIdOf(entry: JsonObject, occurredAt: string): string | null {
   const requestId = text(entry, 'requestId');
   if (requestId) return nativeId(requestId);
-  return (
-    nativeId(text(entry, 'sessionId'), text(entry, 'turnId'), occurredAt) ??
-    nativeId(text(entry, 'sessionId'), occurredAt) ??
-    nativeId(occurredAt)
-  );
+  const sessionId = text(entry, 'sessionId');
+  return nativeId(sessionId, text(entry, 'turnId'), occurredAt) ?? nativeId(sessionId, occurredAt);
+}
+
+function inputSide(usage: JsonObject): Pick<Tokens, 'inputTokens' | 'cacheReadTokens' | 'cacheWriteTokens'> {
+  const details = child(usage, 'inputTokenDetails');
+  const cacheReadTokens = count(details, 'cacheReadTokens') || count(usage, 'cacheReadTokens') || count(usage, 'cachedInputTokens');
+  const cacheWriteTokens = count(details, 'cacheWriteTokens') || count(usage, 'cacheWriteTokens');
+  if (details && typeof details.noCacheTokens === 'number') {
+    return { inputTokens: count(details, 'noCacheTokens'), cacheReadTokens, cacheWriteTokens };
+  }
+  const input = count(usage, 'inputTokens');
+  const cached = cacheReadTokens + cacheWriteTokens;
+  return { inputTokens: cached <= input ? input - cached : input, cacheReadTokens, cacheWriteTokens };
+}
+
+function outputSide(usage: JsonObject): Pick<Tokens, 'outputTokens' | 'reasoningTokens'> {
+  const output = count(usage, 'outputTokens');
+  const reasoningTokens = count(child(usage, 'outputTokenDetails'), 'reasoningTokens') || count(usage, 'reasoningTokens');
+  const total = count(usage, 'totalTokens');
+  const separate = reasoningTokens > output || (total > 0 && total === count(usage, 'inputTokens') + output + reasoningTokens);
+  return { outputTokens: separate ? output + reasoningTokens : output, reasoningTokens };
+}
+
+export function zcodeTokens(usage: JsonObject): Tokens {
+  return { ...inputSide(usage), ...outputSide(usage) };
 }
 
 function recordFrom(line: string): UsageRecord | null {
@@ -39,21 +59,11 @@ function recordFrom(line: string): UsageRecord | null {
   if (!usage) return null;
   const model = modelOf(entry);
   if (!model) return null;
-  const occurredAt = isoTime(entry?.completedAt);
+  const occurredAt = isoTime(entry.completedAt);
   if (!occurredAt) return null;
   const recordId = recordIdOf(entry, occurredAt);
   if (!recordId) return null;
-  const record: UsageRecord = {
-    source: 'zcode',
-    recordId,
-    model,
-    occurredAt,
-    inputTokens: count(usage, 'inputTokens'),
-    outputTokens: count(usage, 'outputTokens'),
-    cacheReadTokens: count(usage, 'cacheReadTokens'),
-    cacheWriteTokens: 0,
-    reasoningTokens: count(usage, 'reasoningTokens'),
-  };
+  const record: UsageRecord = { source: 'zcode', recordId, model, occurredAt, ...zcodeTokens(usage) };
   return hasTokens(record) ? record : null;
 }
 

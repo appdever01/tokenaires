@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { UsageRecord } from '@tokenaires/contracts';
-import { parseZcodeFile } from '@/parsers/zcode';
+import { parseZcodeFile, zcodeTokens } from '@/parsers/zcode';
 import { zcodeRoots } from '@/parsers/paths';
 import { scanLocal } from '@/scan';
-import { ZCODE_MODEL_PRIORITY, ZCODE_NO_REQUEST_ID, ZCODE_OTHER_REQUEST, ZCODE_REQUEST, ZCODE_SECRET, zcodeMainSession, zcodeOtherSession } from './fixtures/zcode';
+import { ZCODE_MODEL_PRIORITY, ZCODE_NO_REQUEST_ID, ZCODE_OTHER_REQUEST, ZCODE_REQUEST, ZCODE_SECRET, modelIoLine, zcodeMainSession, zcodeOtherSession } from './fixtures/zcode';
 import { makeTempDir, removeDir, writeLines } from './helpers/temp';
 
 describe('ZCode parser', () => {
@@ -41,7 +41,7 @@ describe('ZCode parser', () => {
     await writeLines(path, zcodeMainSession);
     const records = (await parseZcodeFile(path)) ?? [];
     expect(records.some((record) => record.recordId.startsWith('f') || record.recordId.startsWith('e'))).toBe(false);
-    expect(JSON.stringify(records)).not.toContain('TOP_SECRET_PROMPT_TEXT');
+    expect(JSON.stringify(records)).not.toContain(ZCODE_SECRET);
     expect(JSON.stringify(records)).not.toContain('usage report written');
   });
 
@@ -55,6 +55,41 @@ describe('ZCode parser', () => {
     expect(zcode.map((record) => record.recordId).sort()).toEqual(
       [ZCODE_MODEL_PRIORITY, ZCODE_OTHER_REQUEST, ZCODE_REQUEST, ZCODE_NO_REQUEST_ID].sort(),
     );
+  });
+
+  it('splits cached tokens out of input and counts reasoning once', () => {
+    expect(zcodeTokens({ inputTokens: 1200, outputTokens: 80, totalTokens: 1280, cacheReadTokens: 1000, reasoningTokens: 30 })).toEqual({
+      inputTokens: 200,
+      outputTokens: 80,
+      cacheReadTokens: 1000,
+      cacheWriteTokens: 0,
+      reasoningTokens: 30,
+    });
+    expect(zcodeTokens({ inputTokens: 10, outputTokens: 50, totalTokens: 60, cacheReadTokens: 1000 })).toMatchObject({
+      inputTokens: 10,
+      cacheReadTokens: 1000,
+    });
+    expect(
+      zcodeTokens({
+        inputTokens: 900,
+        outputTokens: 40,
+        inputTokenDetails: { noCacheTokens: 100, cacheReadTokens: 700, cacheWriteTokens: 100 },
+        outputTokenDetails: { reasoningTokens: 15 },
+      }),
+    ).toEqual({ inputTokens: 100, outputTokens: 40, cacheReadTokens: 700, cacheWriteTokens: 100, reasoningTokens: 15 });
+    expect(zcodeTokens({ inputTokens: 100, outputTokens: 40, totalTokens: 160, reasoningTokens: 20 })).toMatchObject({
+      outputTokens: 60,
+      reasoningTokens: 20,
+    });
+    expect(zcodeTokens({ inputTokens: 100, outputTokens: 10, reasoningTokens: 25 })).toMatchObject({ outputTokens: 35, reasoningTokens: 25 });
+  });
+
+  it('never falls back to a bare timestamp as the record id', async () => {
+    const path = `${root}/model-io-sess_bare.jsonl`;
+    const line = JSON.parse(modelIoLine({ output: 9 })) as Record<string, unknown>;
+    delete line.sessionId;
+    await writeLines(path, [JSON.stringify(line)]);
+    expect(await parseZcodeFile(path)).toEqual([]);
   });
 
   it('reads both default locations unless ZCODE_CONFIG_DIR is set', () => {
