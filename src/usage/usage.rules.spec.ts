@@ -75,6 +75,22 @@ describe('evaluateRecord', () => {
     ).toBe('before_source_launch');
   });
 
+  it('dates ZCode records against the launch and GLM releases', () => {
+    const zcode = {
+      ...base,
+      source: 'zcode' as const,
+      recordId: 'a1b2c3d4-e5f6-47a8-9b0c-1d2e3f4a5b6c',
+    };
+    const at = (model: string, occurredAt: string) =>
+      evaluateRecord({ ...zcode, model, occurredAt }, now);
+    expect(at('glm-5.2', '2026-06-01T00:00:00Z')).toBe('before_source_launch');
+    expect(at('glm-5.2', '2026-07-01T00:00:00Z')).toBeNull();
+    expect(at('GLM-5.3-Flash', '2026-08-01T00:00:00Z')).toBe(
+      'before_model_release',
+    );
+    expect(at('glm-5.3-flash', '2026-09-01T00:00:00Z')).toBeNull();
+  });
+
   it.each([
     [{ recordId: 'msg_short' }, 'invalid_record_id'],
     [{ source: 'codex' as const }, 'invalid_record_id'],
