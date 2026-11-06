@@ -3,8 +3,9 @@
 import { AGENT_SOURCES, BOARD_PERIODS, type BoardPeriod, type BoardSource } from "@tokenaires/contracts";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence } from "motion/react";
-import { useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useBoard } from "@/hooks/use-board";
+import { useDebounce } from "@/hooks/use-debounce";
 import { BoardControls } from "./board-controls";
 import { BoardEmpty } from "./board-empty";
 import { BoardError } from "./board-error";
@@ -29,6 +30,9 @@ export function Board() {
   const params = readParams(search);
   const { data, isPending, isError, refetch, isFetching } = useBoard(params);
 
+  const [rawSearch, setRawSearch] = useState("");
+  const debouncedSearch = useDebounce(rawSearch, 300);
+
   const update = useCallback(
     (next: Partial<{ period: BoardPeriod; source: BoardSource; page: number }>) => {
       const merged = { ...readParams(search), page: 1, ...next };
@@ -42,10 +46,24 @@ export function Board() {
     [pathname, router, search],
   );
 
-  const entries = data?.entries ?? [];
+  const allEntries = data?.entries ?? [];
+
+  const filteredEntries = useMemo(() => {
+    const query = debouncedSearch.trim().toLowerCase();
+    if (!query) return allEntries;
+    return allEntries
+      .filter((entry) => {
+        const handle = entry.user.handle.toLowerCase();
+        const name = (entry.user.name ?? "").toLowerCase();
+        return handle.includes(query) || name.includes(query);
+      })
+      .sort((a, b) => a.rank - b.rank);
+  }, [allEntries, debouncedSearch]);
+
   const onFirstPage = params.page === 1;
-  const topThree = onFirstPage ? entries.filter((entry) => entry.rank <= 3) : [];
-  const rows = onFirstPage ? entries.filter((entry) => entry.rank > 3) : entries;
+  const isSearching = Boolean(debouncedSearch.trim());
+  const topThree = onFirstPage && !isSearching ? filteredEntries.filter((entry) => entry.rank <= 3) : [];
+  const rows = onFirstPage && !isSearching ? filteredEntries.filter((entry) => entry.rank > 3) : filteredEntries;
 
   const leader = data?.leaderTokens ?? 0;
 
@@ -54,8 +72,10 @@ export function Board() {
       <BoardControls
         period={params.period}
         source={params.source}
+        searchValue={rawSearch}
         onPeriodChange={(period) => update({ period })}
         onSourceChange={(source) => update({ source })}
+        onSearchChange={setRawSearch}
       />
       <div className="mt-5" aria-busy={isFetching}>
         {isPending ? (
@@ -65,16 +85,21 @@ export function Board() {
           </>
         ) : isError ? (
           <BoardError onRetry={() => void refetch()} />
-        ) : entries.length === 0 ? (
+        ) : filteredEntries.length === 0 ? (
           <>
-            <TopThree entries={[]} leader={0} />
-            <BoardEmpty period={params.period} source={params.source} />
+            {!isSearching && <TopThree entries={[]} leader={0} />}
+            <BoardEmpty
+              period={params.period}
+              source={params.source}
+              searchQuery={debouncedSearch}
+              onClearSearch={() => setRawSearch("")}
+            />
           </>
         ) : (
           <>
-            {onFirstPage && <TopThree entries={topThree} leader={leader} />}
+            {onFirstPage && !isSearching && <TopThree entries={topThree} leader={leader} />}
             {rows.length > 0 && (
-              <div className="mt-6">
+              <div className={onFirstPage && !isSearching ? "mt-6" : ""}>
                 <RankHeader />
                 <ol className="flex flex-col">
                   <AnimatePresence mode="popLayout">
@@ -84,14 +109,21 @@ export function Board() {
                         entry={entry}
                         leader={leader}
                         index={index}
-                        showMovement={params.period === "all"}
+                        showMovement={params.period === "all" && !isSearching}
                       />
                     ))}
                   </AnimatePresence>
                 </ol>
               </div>
             )}
-            <BoardPagination page={data.page} pageSize={data.pageSize} total={data.totalEntries} onPageChange={(page) => update({ page })} />
+            {!isSearching && (
+              <BoardPagination
+                page={data.page}
+                pageSize={data.pageSize}
+                total={data.totalEntries}
+                onPageChange={(page) => update({ page })}
+              />
+            )}
           </>
         )}
       </div>
