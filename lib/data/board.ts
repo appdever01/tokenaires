@@ -6,7 +6,7 @@ export async function getCachedLeaders(): Promise<{ board: BoardResponse; stats:
   "use cache";
   cacheLife("minutes");
   try {
-    const [board, stats] = await Promise.all([getBoard({ period: "all", source: "all", page: 1 }), getStats()]);
+    const [board, stats] = await Promise.all([getBoard({ period: "all", source: "all", page: 1, q: "" }), getStats()]);
     return { board, stats };
   } catch {
     return null;

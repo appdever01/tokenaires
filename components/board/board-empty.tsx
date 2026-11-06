@@ -26,7 +26,7 @@ export function BoardEmpty({
       <p className="mt-1.5 max-w-sm text-sm text-t3">
         {isSearch ? (
           <>
-            No one matching <span className="font-semibold text-foreground">"{searchQuery}"</span> was found.
+            No one on this list matches <span className="font-medium text-foreground">&ldquo;{searchQuery.trim()}&rdquo;</span>.
           </>
         ) : filtered ? (
           `No usage in ${SOURCE_FILTER_LABELS[source]} for ${PERIOD_LABELS[period].toLowerCase()}.`
