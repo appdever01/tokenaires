@@ -3,6 +3,7 @@ import { BoardPeriod, BoardSource } from '@tokenaires/contracts';
 import { sql } from 'drizzle-orm';
 import { DatabaseService } from '../database/database.service';
 import { previousRanks, RANKABLE, rankedTotals } from './boards.query';
+import { likePattern } from './search';
 
 export interface BoardRow extends Record<string, unknown> {
   rank: string;
@@ -32,8 +33,14 @@ export class BoardsRepository {
     source: BoardSource,
     offset: number,
     limit: number,
+    search: string | null = null,
   ): Promise<{ rows: BoardRow[]; total: number; leader: number }> {
     const movement = period === 'all';
+    const pattern = search === null ? null : likePattern(search);
+    const match =
+      pattern === null
+        ? sql`true`
+        : sql`(u.handle ilike ${pattern} escape '\\' or coalesce(u.name, '') ilike ${pattern} escape '\\')`;
     const rows = await this.database.db.execute<BoardRow>(sql`
       with ranked as (${rankedTotals(period, source)}),
       previous as (${movement ? previousRanks(source) : sql`select null::text as user_id, null::bigint as rank where false`})
@@ -42,6 +49,7 @@ export class BoardsRepository {
       from ranked r
       join users u on u.id = r.user_id
       left join previous p on p.user_id = r.user_id
+      where ${match}
       order by r.rank
       offset ${offset} limit ${limit}
     `);
@@ -49,7 +57,9 @@ export class BoardsRepository {
       total: string;
       leader: string | null;
     }>(sql`
-      select count(*)::int as total, max(tokens) as leader from (${rankedTotals(period, source)}) ranked
+      select count(*) filter (where ${match})::int as total, max(r.tokens) as leader
+      from (${rankedTotals(period, source)}) r
+      join users u on u.id = r.user_id
     `);
     return {
       rows: [...rows],

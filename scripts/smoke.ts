@@ -287,6 +287,34 @@ async function main(): Promise<void> {
     'invalid period refused',
   );
 
+  const fullBoard = await json<BoardResponse>('/boards?period=all');
+  const searched = await json<BoardResponse>(
+    `/boards?period=all&q=${encodeURIComponent(`@${alice.handle.toUpperCase()}`)}`,
+  );
+  check(
+    searched.body.totalEntries === 1 &&
+      searched.body.entries[0]?.user.handle === alice.handle &&
+      searched.body.entries[0]?.rank ===
+        fullBoard.body.entries.find(
+          (entry) => entry.user.handle === alice.handle,
+        )?.rank &&
+      searched.body.leaderTokens === fullBoard.body.leaderTokens,
+    'search finds alice by @handle and keeps her global rank',
+  );
+  const wildcard = await json<BoardResponse>('/boards?period=all&q=%25');
+  check(
+    wildcard.body.totalEntries === 0 && wildcard.body.entries.length === 0,
+    'search treats % as text, not a wildcard',
+  );
+  const reviewed = await json<BoardResponse>(
+    `/boards?period=all&q=${encodeURIComponent(carol.handle)}`,
+  );
+  check(reviewed.body.totalEntries === 0, 'search skips accounts under review');
+  check(
+    (await json(`/boards?q=${'a'.repeat(101)}`)).status === 400,
+    'overlong search refused',
+  );
+
   const profile = await json<ProfileResponse>(
     `/users/${alice.handle.toUpperCase()}`,
   );
