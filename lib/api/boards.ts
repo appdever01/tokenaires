@@ -12,9 +12,11 @@ export interface BoardParams {
   period: BoardPeriod;
   source: BoardSource;
   page: number;
+  q: string;
 }
 
-export async function getBoard(params: BoardParams): Promise<BoardResponse> {
+export async function getBoard({ q, ...rest }: BoardParams): Promise<BoardResponse> {
+  const params = q ? { ...rest, q } : rest;
   const { data } = await api.get<unknown>("/boards", { params });
   return BoardResponseSchema.parse(data);
 }
