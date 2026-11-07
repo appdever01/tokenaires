@@ -37,9 +37,18 @@ export function parseZedPayload(data: Buffer | Uint8Array, dataType: string): Js
   }
 }
 
-function zedRecordId(threadId: string, userMessageId: string): string | null {
-  const combined = `${threadId}:${userMessageId}`;
-  return RECORD_ID_PATTERN.test(combined) ? combined : null;
+function sanitizePart(value: string): string {
+  return value.replace(/[^A-Za-z0-9_.-]/g, '_');
+}
+
+export function zedRecordId(threadId: string, userMessageId: string): string | null {
+  const safeThread = sanitizePart(threadId);
+  const safeMessage = sanitizePart(userMessageId);
+  const combined = `${safeThread}:${safeMessage}`;
+  if (RECORD_ID_PATTERN.test(combined)) return combined;
+
+  const truncated = `${safeThread.slice(0, 70)}:${safeMessage.slice(0, 70)}`;
+  return RECORD_ID_PATTERN.test(truncated) ? truncated : null;
 }
 
 function recordFromEntry(
