@@ -16,9 +16,10 @@ import { kimiSource } from '@/sources/kimi';
 import { openCodeSource } from '@/sources/opencode';
 import { qwenSource } from '@/sources/qwen';
 import { zcodeSource } from '@/sources/zcode';
+import { zedSource } from '@/sources/zed';
 import type { LogSource, SourceContext } from '@/sources/types';
 
-export const LOG_SOURCES: readonly LogSource[] = [claudeSource, codexSource, geminiSource, antigravitySource, openCodeSource, kimiSource, qwenSource, copilotSource, clineSource, rooSource, kiloSource, zcodeSource];
+export const LOG_SOURCES: readonly LogSource[] = [claudeSource, codexSource, geminiSource, antigravitySource, openCodeSource, kimiSource, qwenSource, copilotSource, clineSource, rooSource, kiloSource, zcodeSource, zedSource];
 
 export interface ScanOptions {
   env: NodeJS.ProcessEnv;
