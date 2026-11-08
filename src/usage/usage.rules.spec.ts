@@ -48,6 +48,10 @@ describe('evaluateRecord', () => {
     ['roo-code', '0199a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b:1761234599123'],
     ['kilo-code', 'msg_01JABCDEF0123456789'],
     ['zcode', 'a1b2c3d4-e5f6-47a8-9b0c-1d2e3f4a5b6c'],
+    [
+      'zed',
+      '8e484826-f0f6-42bf-8b71-c9d22bd35c5c:01d380b8-79b4-447e-a6fb-a8300858a7ae',
+    ],
   ] as const)('accepts a native %s record id', (source, recordId) => {
     expect(
       evaluateRecord({ ...base, source, recordId, model: 'gemini-3-pro' }, now),
@@ -89,6 +93,22 @@ describe('evaluateRecord', () => {
       'before_model_release',
     );
     expect(at('glm-5.3-flash', '2026-09-01T00:00:00Z')).toBeNull();
+  });
+
+  it('refuses Zed records older than its agent thread store', () => {
+    const zed = {
+      ...base,
+      source: 'zed' as const,
+      recordId:
+        '8e484826-f0f6-42bf-8b71-c9d22bd35c5c:01d380b8-79b4-447e-a6fb-a8300858a7ae',
+      model: 'claude-3-5-sonnet',
+    };
+    expect(
+      evaluateRecord({ ...zed, occurredAt: '2024-12-31T00:00:00Z' }, now),
+    ).toBe('before_source_launch');
+    expect(
+      evaluateRecord({ ...zed, occurredAt: '2025-02-01T00:00:00Z' }, now),
+    ).toBeNull();
   });
 
   it.each([
