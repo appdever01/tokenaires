@@ -1,112 +1,74 @@
 import { zstdDecompressSync } from 'node:zlib';
 import type { DatabaseSync } from 'node:sqlite';
 import type { UsageRecord } from '@tokenaires/contracts';
-import { isoTime, RECORD_ID_PATTERN, type JsonObject } from '@/parsers/json';
+import { child, count, isObject, isoTime, parseObject, RECORD_ID_PATTERN, text, type JsonObject } from '@/parsers/json';
 import { hasTokens } from '@/parsers/merge';
 import { dbSignature, withReadOnlyDb } from '@/sqlite/open';
 
-interface ZedRawUsage {
-  input_tokens?: number;
-  output_tokens?: number;
-  cache_creation_input_tokens?: number;
-  cache_read_input_tokens?: number;
-}
-
 interface ZedDbRow {
-  id: string;
-  updated_at: string;
-  data_type: string;
-  data: Buffer | Uint8Array;
+  id: unknown;
+  updated_at: unknown;
+  data_type: unknown;
+  data: unknown;
 }
 
-function modelOf(thread: JsonObject): string | null {
-  const modelObj = thread.model;
-  if (!modelObj || typeof modelObj !== 'object') return null;
-  const model = (modelObj as Record<string, unknown>).model;
-  return typeof model === 'string' && model.trim() ? model.trim() : null;
-}
-
-export function parseZedPayload(data: Buffer | Uint8Array, dataType: string): JsonObject | null {
+export function parseZedPayload(data: Uint8Array, dataType: string): JsonObject | null {
   try {
     const raw = dataType === 'zstd' ? zstdDecompressSync(data) : data;
-    const text = Buffer.isBuffer(raw) ? raw.toString('utf8') : new TextDecoder().decode(raw);
-    const parsed = JSON.parse(text);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as JsonObject) : null;
+    return parseObject(Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength).toString('utf8'));
   } catch {
     return null;
   }
 }
 
-function sanitizePart(value: string): string {
-  return value.replace(/[^A-Za-z0-9_.-]/g, '_');
-}
-
 export function zedRecordId(threadId: string, userMessageId: string): string | null {
-  const safeThread = sanitizePart(threadId);
-  const safeMessage = sanitizePart(userMessageId);
-  const combined = `${safeThread}:${safeMessage}`;
-  if (RECORD_ID_PATTERN.test(combined)) return combined;
-
-  const truncated = `${safeThread.slice(0, 70)}:${safeMessage.slice(0, 70)}`;
-  return RECORD_ID_PATTERN.test(truncated) ? truncated : null;
+  const recordId = `${threadId}:${userMessageId}`;
+  return RECORD_ID_PATTERN.test(recordId) ? recordId : null;
 }
 
-function recordFromEntry(
-  threadId: string,
-  userMessageId: string,
-  usage: ZedRawUsage,
-  model: string,
-  occurredAt: string,
-): UsageRecord | null {
-  const recordId = zedRecordId(threadId, userMessageId);
-  if (!recordId) return null;
-  const inputTokens = typeof usage.input_tokens === 'number' && Number.isFinite(usage.input_tokens) ? Math.max(0, Math.floor(usage.input_tokens)) : 0;
-  const outputTokens = typeof usage.output_tokens === 'number' && Number.isFinite(usage.output_tokens) ? Math.max(0, Math.floor(usage.output_tokens)) : 0;
-  const cacheReadTokens = typeof usage.cache_read_input_tokens === 'number' && Number.isFinite(usage.cache_read_input_tokens) ? Math.max(0, Math.floor(usage.cache_read_input_tokens)) : 0;
-  const cacheWriteTokens = typeof usage.cache_creation_input_tokens === 'number' && Number.isFinite(usage.cache_creation_input_tokens) ? Math.max(0, Math.floor(usage.cache_creation_input_tokens)) : 0;
-
+function recordFromUsage(recordId: string, usage: JsonObject, model: string, occurredAt: string): UsageRecord | null {
+  const outputTokens = count(usage, 'output_tokens');
+  if (outputTokens === 0) return null;
   const record: UsageRecord = {
     source: 'zed',
     recordId,
     model,
     occurredAt,
-    inputTokens,
+    inputTokens: count(usage, 'input_tokens'),
     outputTokens,
-    cacheReadTokens,
-    cacheWriteTokens,
+    cacheReadTokens: count(usage, 'cache_read_input_tokens'),
+    cacheWriteTokens: count(usage, 'cache_creation_input_tokens'),
     reasoningTokens: 0,
   };
   return hasTokens(record) ? record : null;
 }
 
+function threadRecords(row: ZedDbRow): UsageRecord[] {
+  if (typeof row.id !== 'string' || !(row.data instanceof Uint8Array)) return [];
+  const thread = parseZedPayload(row.data, typeof row.data_type === 'string' ? row.data_type : '');
+  const model = text(child(thread, 'model'), 'model')?.trim();
+  const usage = child(thread, 'request_token_usage');
+  const occurredAt = isoTime(thread?.updated_at) ?? isoTime(row.updated_at);
+  if (!model || !usage || !occurredAt) return [];
+  const records: UsageRecord[] = [];
+  for (const [messageId, entry] of Object.entries(usage)) {
+    const recordId = zedRecordId(row.id, messageId);
+    const record = recordId && isObject(entry) ? recordFromUsage(recordId, entry, model, occurredAt) : null;
+    if (record) records.push(record);
+  }
+  return records;
+}
+
 export function readZedDb(db: DatabaseSync): UsageRecord[] {
-  const tableCheck = db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='threads'").get();
-  if (!tableCheck) return [];
-
-  const records = new Map<string, UsageRecord>();
+  const table = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'threads'").get();
+  if (!table) return [];
   const rows = db.prepare('SELECT id, updated_at, data_type, data FROM threads').all() as unknown as ZedDbRow[];
-
+  const records = new Map<string, UsageRecord>();
   for (const row of rows) {
-    if (!row.id || !row.data) continue;
-    const thread = parseZedPayload(row.data, row.data_type);
-    if (!thread) continue;
-    const model = modelOf(thread);
-    if (!model) continue;
-    const occurredAt = isoTime(thread.updated_at) ?? isoTime(row.updated_at);
-    if (!occurredAt) continue;
-
-    const requestUsage = thread.request_token_usage;
-    if (requestUsage && typeof requestUsage === 'object' && !Array.isArray(requestUsage)) {
-      for (const [messageId, usageObj] of Object.entries(requestUsage)) {
-        if (!usageObj || typeof usageObj !== 'object') continue;
-        const record = recordFromEntry(row.id, messageId, usageObj as ZedRawUsage, model, occurredAt);
-        if (record && !records.has(record.recordId)) {
-          records.set(record.recordId, record);
-        }
-      }
+    for (const record of threadRecords(row)) {
+      if (!records.has(record.recordId)) records.set(record.recordId, record);
     }
   }
-
   return [...records.values()];
 }
 

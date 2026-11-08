@@ -726,7 +726,7 @@ packages:
     os: [win32]
 
   '@tokenaires/contracts@file:vendor/tokenaires-contracts-0.6.0.tgz':
-    resolution: {integrity: sha512-AIdD3T0j8OjxIPG0IqAp585CSSl0Jb2YCA/wzUGt0UjuFSJAIyiYms8+f9EtvDBcpPnip9vJNjfhcEDAfnbTnw==, tarball: file:vendor/tokenaires-contracts-0.6.0.tgz}
+    resolution: {integrity: sha512-T8CELphFuaH2lXYM88yMFElZ+3KHdRwA936gVTpHEm+hoMj97G9K5ZqwbS2PGNHRSJDrN8hmPD48lPsln1216w==, tarball: file:vendor/tokenaires-contracts-0.6.0.tgz}
     version: 0.6.0
 
   '@types/chai@5.2.3':
