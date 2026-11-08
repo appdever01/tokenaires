@@ -52,6 +52,10 @@ describe('evaluateRecord', () => {
       'zed',
       '8e484826-f0f6-42bf-8b71-c9d22bd35c5c:01d380b8-79b4-447e-a6fb-a8300858a7ae',
     ],
+    [
+      'deepseek-harness',
+      'session-2c78dd9c-1095-4b96-9cd1-ee3dad5c7253:1e706ed0-3b3b-4c9d-ac27-a322069a1ade',
+    ],
   ] as const)('accepts a native %s record id', (source, recordId) => {
     expect(
       evaluateRecord({ ...base, source, recordId, model: 'gemini-3-pro' }, now),
@@ -93,6 +97,22 @@ describe('evaluateRecord', () => {
       'before_model_release',
     );
     expect(at('glm-5.3-flash', '2026-09-01T00:00:00Z')).toBeNull();
+  });
+
+  it('refuses DeepSeek Harness records older than its developer preview', () => {
+    const harness = {
+      ...base,
+      source: 'deepseek-harness' as const,
+      recordId:
+        'session-2c78dd9c-1095-4b96-9cd1-ee3dad5c7253:1e706ed0-3b3b-4c9d-ac27-a322069a1ade',
+      model: 'deepseek-flash',
+    };
+    expect(
+      evaluateRecord({ ...harness, occurredAt: '2026-08-12T23:59:59Z' }, now),
+    ).toBe('before_source_launch');
+    expect(
+      evaluateRecord({ ...harness, occurredAt: '2026-08-13T00:00:00Z' }, now),
+    ).toBeNull();
   });
 
   it('refuses Zed records older than its agent thread store', () => {
