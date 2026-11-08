@@ -2,7 +2,7 @@ import type { AgentSource } from "@tokenaires/contracts";
 import { AGENT_SOURCE_LABELS } from "@tokenaires/contracts";
 import type { IconBaseProps, IconType } from "react-icons";
 import { RiOpenaiFill } from "react-icons/ri";
-import { SiClaude, SiCline, SiGithubcopilot, SiGoogle, SiGooglegemini, SiMoonshotai, SiOpencode, SiQwen, SiZedindustries } from "react-icons/si";
+import { SiClaude, SiCline, SiDeepseek, SiGithubcopilot, SiGoogle, SiGooglegemini, SiMoonshotai, SiOpencode, SiQwen, SiZedindustries } from "react-icons/si";
 import { cn } from "@/lib/utils";
 
 function lettermark(letter: string): IconType {
@@ -33,6 +33,7 @@ const ICONS: Record<AgentSource, IconType> = {
   "kilo-code": lettermark("K"),
   zcode: lettermark("Z"),
   zed: SiZedindustries,
+  "deepseek-harness": SiDeepseek,
 };
 
 const TINTS: Record<AgentSource, string> = {
@@ -49,6 +50,7 @@ const TINTS: Record<AgentSource, string> = {
   "kilo-code": "text-t2",
   zcode: "text-t2",
   zed: "text-t2",
+  "deepseek-harness": "text-deepseek",
 };
 
 export function SourceIcon({ source, className }: { source: AgentSource; className?: string }) {
