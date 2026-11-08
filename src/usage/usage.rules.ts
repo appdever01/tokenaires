@@ -36,7 +36,7 @@ export const SOURCE_LAUNCH_DATES: Record<AgentSource, string> = {
   'roo-code': '2024-10-01T00:00:00Z',
   'kilo-code': '2025-03-01T00:00:00Z',
   zcode: '2026-06-28T00:00:00Z',
-  zed: '2024-01-01T00:00:00Z',
+  zed: '2025-01-01T00:00:00Z',
 };
 
 export const MODEL_RELEASE_DATES: ReadonlyArray<{
