@@ -10,6 +10,7 @@ import { claudeSource } from '@/sources/claude';
 import { clineSource, rooSource } from '@/sources/cline';
 import { codexSource } from '@/sources/codex';
 import { copilotSource } from '@/sources/copilot';
+import { deepseekHarnessSource } from '@/sources/deepseek-harness';
 import { geminiSource } from '@/sources/gemini';
 import { kiloSource } from '@/sources/kilo';
 import { kimiSource } from '@/sources/kimi';
@@ -19,7 +20,7 @@ import { zcodeSource } from '@/sources/zcode';
 import { zedSource } from '@/sources/zed';
 import type { LogSource, SourceContext } from '@/sources/types';
 
-export const LOG_SOURCES: readonly LogSource[] = [claudeSource, codexSource, geminiSource, antigravitySource, openCodeSource, kimiSource, qwenSource, copilotSource, clineSource, rooSource, kiloSource, zcodeSource, zedSource];
+export const LOG_SOURCES: readonly LogSource[] = [claudeSource, codexSource, geminiSource, antigravitySource, openCodeSource, kimiSource, qwenSource, copilotSource, clineSource, rooSource, kiloSource, zcodeSource, zedSource, deepseekHarnessSource];
 
 export interface ScanOptions {
   env: NodeJS.ProcessEnv;

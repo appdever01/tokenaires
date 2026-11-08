@@ -51,6 +51,7 @@ Everything is read locally. Text logs are read line by line, and only lines that
 - **Kilo Code:** `kilo.db` and channel databases in `$XDG_DATA_HOME/kilo` (default `~/.local/share/kilo`), which use the OpenCode layout, plus a database named by `KILO_DB`. Sessions Kilo imported from its old extension carry zero usage and are skipped.
 - **ZCode:** every `model-io-sess_*.jsonl` rollout file under `cli/rollout` in each ZCode config folder. The folders are `$ZCODE_CONFIG_DIR` when set (a list separated by commas or the path separator, `~` allowed), otherwise `~/.zcode`, `~/.config/zcode` and `$XDG_CONFIG_HOME/zcode`. On Windows the ZCode homes inside WSL distros are read too. Each rollout line is one model API call with the usage under `response.usage`; retried requests repeat the request id with a higher attempt number and only the final attempt is kept, lines without a usage block or with zero usage are skipped, and no request or response payload text is stored. Cached tokens are split out of input, and thinking tokens count as output only when the reported total shows they were billed separately.
 - **Zed:** the agent thread database `threads/threads.db` in Zed's data folder: `~/Library/Application Support/Zed` on macOS, `%LOCALAPPDATA%\Zed` on Windows, and `$XDG_DATA_HOME/zed` (default `~/.local/share/zed`) or the Flatpak folder on Linux. `ZED_HOME` points at another data folder or at the folder holding `threads.db`. On Windows the Zed data inside WSL distros is read too. Each thread is zstd compressed JSON, and only the numeric counts under `request_token_usage` are read, one record per thread and user message. Zed keeps only the last model request of each turn there, so turns that ran several tool calls are under-counted, never over-counted. Entries Zed writes for a request that overflowed the context window carry no output and are skipped. Zed stores the model and update time per thread, not per message, so each new message takes the thread's model and last update time. Prompts, code, titles and conversation text are never read into records.
+- **DeepSeek Harness:** the session logs under `sessions/*/session-*/` in the DeepSeek Harness data folder, `~/.dsh` on every platform, or `DSH_HOME` when it points elsewhere. On Windows the data inside WSL distros is read too. Harness appends one zstd frame per session event to each `session.v*.jsonl.zstd`, so every frame is decompressed on its own; a torn frame at the end of a session still being written is skipped and everything before it is kept. Each `assistant/message` event with a usage block counts once, keyed by the session id and the message id, and labelled with the model the event reports. Prompts, replies, tool output, working directories and session titles are never read into records.
 - **Cursor:** not counted. Cursor keeps per message token counts at zero in its local database and only stores context window estimates, so there is nothing exact to read.
 
 ## What is uploaded
@@ -59,8 +60,8 @@ Exactly these fields per record, and nothing else:
 
 | Field | Example |
 | --- | --- |
-| `source` | `claude-code`, `codex`, `gemini-cli`, `antigravity`, `opencode`, `kimi-code`, `qwen-code`, `copilot-cli`, `cline`, `roo-code`, `kilo-code`, `zcode` or `zed` |
-| `recordId` | the tool's own id for the call: the Claude message and request id, the Codex session id and line number, the Gemini session and message id, the Antigravity conversation and response id, the OpenCode or Kilo message id, the Kimi Code session, agent and line or the kimi-cli message id, a hash of the Copilot session, row and time, the Qwen message id, the Cline or Roo task and request time, the ZCode request id, or the Zed thread and message id |
+| `source` | `claude-code`, `codex`, `gemini-cli`, `antigravity`, `opencode`, `kimi-code`, `qwen-code`, `copilot-cli`, `cline`, `roo-code`, `kilo-code`, `zcode`, `zed` or `deepseek-harness` |
+| `recordId` | the tool's own id for the call: the Claude message and request id, the Codex session id and line number, the Gemini session and message id, the Antigravity conversation and response id, the OpenCode or Kilo message id, the Kimi Code session, agent and line or the kimi-cli message id, a hash of the Copilot session, row and time, the Qwen message id, the Cline or Roo task and request time, the ZCode request id, the Zed thread and message id, or the DeepSeek Harness session and message id |
 | `model` | `claude-opus-5-5` |
 | `occurredAt` | `2026-11-03T10:15:00.000Z` |
 | `inputTokens` | uncached input tokens |
@@ -103,6 +104,7 @@ Each sync asks the server for your latest record per source and sends records fr
 | `OPENCODE_DB_PREFIX` | `opencode` |
 | `XDG_DATA_HOME` | `~/.local/share` |
 | `ZED_HOME` | unset. Zed data folder, or the folder holding `threads.db`. |
+| `DSH_HOME` | `~/.dsh` |
 | `TOKENAIRES_NO_CACHE` | unset. Set it to scan without the local scan cache. |
 
 For local development against the backend:
