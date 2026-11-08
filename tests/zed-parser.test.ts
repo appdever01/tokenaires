@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { parseZedFile, parseZedPayload } from '@/parsers/zed';
 import { zedSource } from '@/sources/zed';
 import { makeZedDb } from './fixtures/zed';
+import { DatabaseSync } from 'node:sqlite';
 
 describe('Zed parser', () => {
   it('parses decompressed thread payload and extracts usage records', async () => {
@@ -167,6 +168,21 @@ describe('Zed parser', () => {
       ]);
     } finally {
       await rm(home, { recursive: true, force: true });
+    }
+  });
+
+  it('reads plain JSON threads stored as text', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'zed-test-'));
+    const dbPath = join(dir, 'threads.db');
+    try {
+      const db = new DatabaseSync(dbPath);
+      db.exec('CREATE TABLE threads (id TEXT PRIMARY KEY, summary TEXT, updated_at TEXT, data_type TEXT, data BLOB)');
+      const thread = { updated_at: '2026-09-10T17:54:49Z', model: { provider: 'openai', model: 'gpt-5' }, request_token_usage: { 'msg-0001': { input_tokens: 10, output_tokens: 5 } } };
+      db.prepare('INSERT INTO threads VALUES (?, ?, ?, ?, ?)').run('thread-text', 's', thread.updated_at, 'json', JSON.stringify(thread));
+      db.close();
+      expect((await parseZedFile(dbPath))?.map((record) => record.recordId)).toEqual(['thread-text:msg-0001']);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
     }
   });
 

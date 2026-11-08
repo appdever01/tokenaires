@@ -44,8 +44,10 @@ function recordFromUsage(recordId: string, usage: JsonObject, model: string, occ
 }
 
 function threadRecords(row: ZedDbRow): UsageRecord[] {
-  if (typeof row.id !== 'string' || !(row.data instanceof Uint8Array)) return [];
-  const thread = parseZedPayload(row.data, typeof row.data_type === 'string' ? row.data_type : '');
+  if (typeof row.id !== 'string') return [];
+  const data = typeof row.data === 'string' ? Buffer.from(row.data, 'utf8') : row.data;
+  if (!(data instanceof Uint8Array)) return [];
+  const thread = parseZedPayload(data, typeof row.data_type === 'string' ? row.data_type : '');
   const model = text(child(thread, 'model'), 'model')?.trim();
   const usage = child(thread, 'request_token_usage');
   const occurredAt = isoTime(thread?.updated_at) ?? isoTime(row.updated_at);
