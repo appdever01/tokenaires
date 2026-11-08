@@ -26,3 +26,24 @@ export function boardQueryString(params: BoardParams): string {
   if (params.page > 1) query.set("page", String(params.page));
   return query.toString();
 }
+
+export interface SearchSync {
+  input: string;
+  urlQ: string;
+  inFlight: readonly string[];
+}
+
+export function searchSyncFrom(q: string): SearchSync {
+  return { input: q, urlQ: q, inFlight: [] };
+}
+
+export function searchPushed(state: SearchSync, q: string): SearchSync {
+  return { ...state, inFlight: [...state.inFlight, q] };
+}
+
+export function searchUrlChanged(state: SearchSync, q: string): SearchSync {
+  if (q === state.urlQ) return state;
+  const index = state.inFlight.indexOf(q);
+  if (index === -1) return searchSyncFrom(q);
+  return { ...state, urlQ: q, inFlight: state.inFlight.slice(index + 1) };
+}

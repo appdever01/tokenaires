@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BoardParams } from "@/lib/api/boards";
-import { boardQueryString, cleanSearch, readBoardParams } from "@/lib/board-params";
+import { boardQueryString, cleanSearch, readBoardParams, searchPushed, searchSyncFrom, searchUrlChanged } from "@/lib/board-params";
 import { useBoard } from "@/hooks/use-board";
 import { BoardControls } from "./board-controls";
 import { BoardEmpty } from "./board-empty";
@@ -31,34 +31,30 @@ export function Board() {
     [pathname, router, search],
   );
 
-  const [searchInput, setSearchInput] = useState(params.q);
-  const [pendingQ, setPendingQ] = useState(params.q);
-  const [urlQ, setUrlQ] = useState(params.q);
-  if (params.q !== urlQ) {
-    setUrlQ(params.q);
-    if (params.q !== pendingQ) {
-      setSearchInput(params.q);
-      setPendingQ(params.q);
-    }
-  }
+  const [sync, setSync] = useState(() => searchSyncFrom(params.q));
+  const synced = searchUrlChanged(sync, params.q);
+  if (synced !== sync) setSync(synced);
 
   const updateRef = useRef(update);
+  const urlQRef = useRef(params.q);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     updateRef.current = update;
-  }, [update]);
+    urlQRef.current = params.q;
+  }, [update, params.q]);
   useEffect(() => () => clearTimeout(timer.current), []);
 
   const onSearchChange = useCallback((value: string) => {
-    setSearchInput(value);
-    const q = cleanSearch(value);
-    setPendingQ(q);
+    setSync((state) => ({ ...state, input: value }));
     clearTimeout(timer.current);
-    if (!q) {
+    const push = () => {
+      const q = cleanSearch(value);
+      if (q === urlQRef.current) return;
+      setSync((state) => searchPushed(state, q));
       updateRef.current({ q });
-      return;
-    }
-    timer.current = setTimeout(() => updateRef.current({ q }), SEARCH_DELAY_MS);
+    };
+    if (cleanSearch(value)) timer.current = setTimeout(push, SEARCH_DELAY_MS);
+    else push();
   }, []);
 
   const entries = data?.entries ?? [];
@@ -74,7 +70,7 @@ export function Board() {
       <BoardControls
         period={params.period}
         source={params.source}
-        searchValue={searchInput}
+        searchValue={synced.input}
         onPeriodChange={(period) => update({ period })}
         onSourceChange={(source) => update({ source })}
         onSearchChange={onSearchChange}

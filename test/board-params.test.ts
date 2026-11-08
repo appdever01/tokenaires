@@ -4,7 +4,9 @@ const get = vi.fn();
 vi.mock("@/lib/api/client", () => ({ api: { get: (...args: unknown[]) => get(...args) } }));
 
 const { getBoard } = await import("@/lib/api/boards");
-const { BOARD_SEARCH_MAX_LENGTH, boardQueryString, readBoardParams } = await import("@/lib/board-params");
+const { BOARD_SEARCH_MAX_LENGTH, boardQueryString, readBoardParams, searchPushed, searchSyncFrom, searchUrlChanged } = await import(
+  "@/lib/board-params"
+);
 
 const EMPTY_BOARD = {
   period: "all",
@@ -59,5 +61,30 @@ describe("getBoard", () => {
   it("sends the search term to the API", async () => {
     await getBoard({ period: "week", source: "all", page: 2, q: "ada" });
     expect(get).toHaveBeenCalledWith("/boards", { params: { period: "week", source: "all", page: 2, q: "ada" } });
+  });
+});
+
+describe("search box and URL sync", () => {
+  it("keeps typing that lands after an older search reaches the URL", () => {
+    let state = searchPushed({ ...searchSyncFrom(""), input: "ada" }, "ada");
+    state = { ...state, input: "ada lov" };
+    state = searchUrlChanged(state, "ada");
+    expect(state).toEqual({ input: "ada lov", urlQ: "ada", inFlight: [] });
+  });
+
+  it("skips past older in-flight searches when a newer one lands first", () => {
+    let state = searchPushed(searchPushed(searchSyncFrom(""), "ad"), "ada");
+    state = searchUrlChanged({ ...state, input: "ada" }, "ada");
+    expect(state).toEqual({ input: "ada", urlQ: "ada", inFlight: [] });
+  });
+
+  it("follows the URL when something else changes it", () => {
+    const state = searchUrlChanged({ input: "ada", urlQ: "ada", inFlight: [] }, "");
+    expect(state).toEqual({ input: "", urlQ: "", inFlight: [] });
+  });
+
+  it("returns the same state when the URL did not change", () => {
+    const state = searchSyncFrom("ada");
+    expect(searchUrlChanged(state, "ada")).toBe(state);
   });
 });
