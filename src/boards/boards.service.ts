@@ -9,6 +9,7 @@ import {
 } from '@tokenaires/contracts';
 import { BoardQueryDto } from './dto/board-query.dto';
 import { BoardRow, BoardsRepository } from './boards.repository';
+import { normalizeSearch } from './search';
 
 function toEntry(row: BoardRow): BoardEntry {
   const tokens = Number(row.tokens);
@@ -46,6 +47,7 @@ export class BoardsService {
       query.source,
       offset,
       BOARD_PAGE_SIZE,
+      normalizeSearch(query.q),
     );
     return {
       period: query.period,
