@@ -23,11 +23,13 @@ export function AgentStack({
   max,
   size = "md",
   className,
+  withTooltip = true,
 }: {
   sources: AgentSource[];
   max?: number;
   size?: keyof typeof STACK_SIZES;
   className?: string;
+  withTooltip?: boolean;
 }) {
   if (sources.length === 0) return null;
   const label = agentList(sources);
@@ -39,31 +41,33 @@ export function AgentStack({
     ({ "--fan": `${(count - 1 - index) * -FAN_PX}px`, zIndex: count - index }) as CSSProperties;
   const motionClass =
     "transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:[transform:translateX(var(--fan))] group-hover/stack:[transform:translateX(var(--fan))] motion-reduce:transition-none";
-  return (
-    <Tooltip label={label}>
-      <span role="img" aria-label={`Tools: ${label}`} className={cn("group/stack flex shrink-0 items-center", className)}>
-        {shown.map((source, index) => (
-          <span
-            key={source}
-            aria-hidden="true"
-            style={fan(index)}
-            className={cn("relative flex items-center justify-center rounded-full border border-line-strong bg-panel ring-panel-raised first:ml-0", styles.chip, motionClass)}
-          >
-            <SourceIcon source={source} className={styles.icon} />
-          </span>
-        ))}
-        {extra > 0 && (
-          <span
-            aria-hidden="true"
-            style={fan(shown.length)}
-            className={cn("relative flex items-center justify-center rounded-full border border-line-strong bg-panel px-1 font-medium text-t3 ring-panel-raised tabular", styles.extra, motionClass)}
-          >
-            +{extra}
-          </span>
-        )}
-      </span>
-    </Tooltip>
+
+  const content = (
+    <span role="img" aria-label={`Tools: ${label}`} title={withTooltip ? undefined : label} className={cn("group/stack flex shrink-0 items-center", className)}>
+      {shown.map((source, index) => (
+        <span
+          key={source}
+          aria-hidden="true"
+          style={fan(index)}
+          className={cn("relative flex items-center justify-center rounded-full border border-line-strong bg-panel ring-panel-raised first:ml-0", styles.chip, motionClass)}
+        >
+          <SourceIcon source={source} className={styles.icon} />
+        </span>
+      ))}
+      {extra > 0 && (
+        <span
+          aria-hidden="true"
+          style={fan(shown.length)}
+          className={cn("relative flex items-center justify-center rounded-full border border-line-strong bg-panel px-1 font-medium text-t3 ring-panel-raised tabular", styles.extra, motionClass)}
+        >
+          +{extra}
+        </span>
+      )}
+    </span>
   );
+
+  if (!withTooltip) return content;
+  return <Tooltip label={label}>{content}</Tooltip>;
 }
 
 export function AgentStackCompact({ sources, max = 3, className }: { sources: AgentSource[]; max?: number; className?: string }) {
