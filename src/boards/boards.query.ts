@@ -32,9 +32,9 @@ export function rankedTotals(period: BoardPeriod, source: BoardSource): SQL {
       join users u on u.id = d.user_id
       where ${RANKABLE} and ${periodFilter(period)} and ${sourceFilter(source)}
       group by d.user_id, u.created_at, d.source
-      having sum(d.total_tokens) > 0
     ) s
     group by s.user_id, s.created_at
+    having sum(s.source_tokens) > 0
   `;
 }
 

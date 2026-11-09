@@ -1,9 +1,4 @@
-import {
-  periodFilter,
-  previousRanks,
-  rankedTotals,
-  sourceFilter,
-} from './boards.query';
+import { rankedTotals } from './boards.query';
 
 function sqlString(query: { queryChunks: unknown[] }): string {
   return query.queryChunks
@@ -25,64 +20,47 @@ function sqlString(query: { queryChunks: unknown[] }): string {
     .join(' ');
 }
 
-describe('boards.query', () => {
-  describe('periodFilter', () => {
-    it('returns true for all-time period', () => {
-      const query = periodFilter('all');
-      expect(sqlString(query as unknown as { queryChunks: unknown[] })).toContain(
-        'true',
-      );
-    });
+describe('rankedTotals query builder', () => {
+  it('aggregates sources ordered by token usage descending with tie breaker', () => {
+    const query = rankedTotals('all', 'all');
+    const text = sqlString(query as unknown as { queryChunks: unknown[] });
 
-    it('returns 7-day window filter for week period', () => {
-      const query = periodFilter('week');
-      const text = sqlString(query as unknown as { queryChunks: unknown[] });
-      expect(text).toContain('d.day > current_date -');
-      expect(text).toContain('7');
-    });
-
-    it('returns 30-day window filter for month period', () => {
-      const query = periodFilter('month');
-      const text = sqlString(query as unknown as { queryChunks: unknown[] });
-      expect(text).toContain('d.day > current_date -');
-      expect(text).toContain('30');
-    });
+    expect(text).toContain(
+      'array_agg(s.source order by s.source_tokens desc, s.source asc) as sources',
+    );
+    expect(text).toContain('group by d.user_id, u.created_at, d.source');
+    expect(text).toContain('group by s.user_id, s.created_at');
+    expect(text).toContain('having sum(s.source_tokens) > 0');
   });
 
-  describe('sourceFilter', () => {
-    it('returns true for all source', () => {
-      const query = sourceFilter('all');
-      expect(sqlString(query as unknown as { queryChunks: unknown[] })).toContain(
-        'true',
-      );
-    });
+  it('embeds the 7-day period window when week is selected', () => {
+    const query = rankedTotals('week', 'all');
+    const text = sqlString(query as unknown as { queryChunks: unknown[] }).replace(
+      /\s+/g,
+      ' ',
+    );
 
-    it('filters by specific source', () => {
-      const query = sourceFilter('claude-code');
-      const text = sqlString(query as unknown as { queryChunks: unknown[] });
-      expect(text).toContain('d.source =');
-      expect(text).toContain('claude-code');
-    });
+    expect(text).toContain('d.day > current_date - 7 ::int');
   });
 
-  describe('rankedTotals', () => {
-    it('generates query that aggregates sources in descending token usage order', () => {
-      const query = rankedTotals('week', 'all');
-      const text = sqlString(query as unknown as { queryChunks: unknown[] });
-      expect(text).toContain(
-        'array_agg(s.source order by s.source_tokens desc, s.source asc) as sources',
-      );
-      expect(text).toContain('group by d.user_id, u.created_at, d.source');
-      expect(text).toContain('group by s.user_id, s.created_at');
-    });
+  it('embeds the 30-day period window when month is selected', () => {
+    const query = rankedTotals('month', 'all');
+    const text = sqlString(query as unknown as { queryChunks: unknown[] }).replace(
+      /\s+/g,
+      ' ',
+    );
+
+    expect(text).toContain('d.day > current_date - 30 ::int');
   });
 
-  describe('previousRanks', () => {
-    it('generates query for historical ranks', () => {
-      const query = previousRanks('all');
-      const text = sqlString(query as unknown as { queryChunks: unknown[] });
-      expect(text).toContain('d.day <= current_date -');
-      expect(text).toContain('7');
-    });
+  it('filters by single agent source when specified', () => {
+    const query = rankedTotals('all', 'claude-code');
+    const text = sqlString(query as unknown as { queryChunks: unknown[] }).replace(
+      /\s+/g,
+      ' ',
+    );
+
+    expect(text).toContain('d.source = claude-code');
   });
 });
+

@@ -28,7 +28,7 @@ function toEntry(row: BoardRow): BoardEntry {
     tokens,
     outputTokens: Number(row.output_tokens),
     tier: tierFor(tokens),
-    sources: (row.sources ?? []).flatMap((source) => {
+    sources: row.sources.flatMap((source) => {
       const parsed = AgentSourceSchema.safeParse(source);
       return parsed.success ? [parsed.data] : [];
     }),
