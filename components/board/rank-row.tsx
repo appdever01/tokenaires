@@ -38,14 +38,11 @@ export function RankRow({ entry, leader, showMovement, index }: RankRowProps) {
   const name = entry.user.name ?? entry.user.handle;
   return (
     <motion.li
-      layout="position"
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{
-        layout: { type: "spring", stiffness: 420, damping: 40 },
-        opacity: { duration: 0.25, delay: Math.min(index * ROW_STAGGER_S, ROW_STAGGER_CAP_S) },
-        y: { duration: 0.3, delay: Math.min(index * ROW_STAGGER_S, ROW_STAGGER_CAP_S) },
+        opacity: { duration: 0.15, delay: Math.min(index * ROW_STAGGER_S, ROW_STAGGER_CAP_S) },
       }}
       className={`${ROW_GRID} rounded-[14px] px-3 transition-colors duration-150 hover:bg-foreground/[0.035]`}
     >
