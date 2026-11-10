@@ -52,6 +52,7 @@ describe('evaluateRecord', () => {
       'zed',
       '8e484826-f0f6-42bf-8b71-c9d22bd35c5c:01d380b8-79b4-447e-a6fb-a8300858a7ae',
     ],
+    ['devin', 'tarry-sage:9'],
   ] as const)('accepts a native %s record id', (source, recordId) => {
     expect(
       evaluateRecord({ ...base, source, recordId, model: 'gemini-3-pro' }, now),
