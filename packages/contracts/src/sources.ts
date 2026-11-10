@@ -14,6 +14,7 @@ export const AGENT_SOURCES = [
   'kilo-code',
   'zcode',
   'zed',
+  'vscode',
 ] as const;
 
 export const AgentSourceSchema = z.enum(AGENT_SOURCES);
@@ -33,4 +34,5 @@ export const AGENT_SOURCE_LABELS: Record<AgentSource, string> = {
   'kilo-code': 'Kilo Code',
   zcode: 'ZCode',
   zed: 'Zed',
+  vscode: 'VS Code',
 };
