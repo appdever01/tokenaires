@@ -112,6 +112,21 @@ describe('evaluateRecord', () => {
     ).toBeNull();
   });
 
+  it('refuses Devin records older than its CLI launch', () => {
+    const devin = {
+      ...base,
+      source: 'devin' as const,
+      recordId: 'tarry-sage:9',
+      model: 'swe-2-flash-medium',
+    };
+    expect(
+      evaluateRecord({ ...devin, occurredAt: '2026-04-26T23:59:59Z' }, now),
+    ).toBe('before_source_launch');
+    expect(
+      evaluateRecord({ ...devin, occurredAt: '2026-05-01T00:00:00Z' }, now),
+    ).toBeNull();
+  });
+
   it.each([
     [{ recordId: 'msg_short' }, 'invalid_record_id'],
     [{ source: 'codex' as const }, 'invalid_record_id'],
