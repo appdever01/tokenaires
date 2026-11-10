@@ -124,10 +124,10 @@ describe('evaluateRecord', () => {
       model: 'gpt-6-luna',
     };
     expect(
-      evaluateRecord({ ...vscode, occurredAt: '2024-12-31T00:00:00Z' }, now),
+      evaluateRecord({ ...vscode, occurredAt: '2026-07-31T00:00:00Z' }, now),
     ).toBe('before_source_launch');
     expect(
-      evaluateRecord({ ...vscode, occurredAt: '2025-02-01T00:00:00Z' }, now),
+      evaluateRecord({ ...vscode, occurredAt: '2026-08-15T00:00:00Z' }, now),
     ).toBeNull();
   });
 
