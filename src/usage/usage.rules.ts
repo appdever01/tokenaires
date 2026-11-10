@@ -21,6 +21,7 @@ export const RECORD_ID_PATTERNS: Record<AgentSource, RegExp> = {
   'kilo-code': NATIVE_RECORD_ID,
   zcode: NATIVE_RECORD_ID,
   zed: NATIVE_RECORD_ID,
+  vscode: NATIVE_RECORD_ID,
 };
 
 export const SOURCE_LAUNCH_DATES: Record<AgentSource, string> = {
@@ -37,6 +38,7 @@ export const SOURCE_LAUNCH_DATES: Record<AgentSource, string> = {
   'kilo-code': '2025-03-01T00:00:00Z',
   zcode: '2026-06-28T00:00:00Z',
   zed: '2025-01-01T00:00:00Z',
+  vscode: '2026-08-01T00:00:00Z',
 };
 
 export const MODEL_RELEASE_DATES: ReadonlyArray<{
