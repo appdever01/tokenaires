@@ -1,30 +1,28 @@
+import type { SQL } from 'drizzle-orm';
 import { rankedTotals } from './boards.query';
 
-function sqlString(query: { queryChunks: unknown[] }): string {
+function sqlText(query: SQL): string {
   return query.queryChunks
     .map((chunk) => {
       if (typeof chunk === 'string' || typeof chunk === 'number') {
         return String(chunk);
       }
       if (chunk && typeof chunk === 'object') {
+        if ('queryChunks' in chunk) return sqlText(chunk);
         if ('value' in chunk) {
-          const val = (chunk as { value: unknown }).value;
-          return Array.isArray(val) ? val.join('') : String(val);
-        }
-        if ('queryChunks' in chunk) {
-          return sqlString(chunk as { queryChunks: unknown[] });
+          const value: unknown = chunk.value;
+          return Array.isArray(value) ? value.join('') : String(value);
         }
       }
       return '';
     })
-    .join(' ');
+    .join(' ')
+    .replace(/\s+/g, ' ');
 }
 
-describe('rankedTotals query builder', () => {
-  it('aggregates sources ordered by token usage descending with tie breaker', () => {
-    const query = rankedTotals('all', 'all');
-    const text = sqlString(query as unknown as { queryChunks: unknown[] });
-
+describe('rankedTotals', () => {
+  it('orders each developer sources by tokens in the period, then by name', () => {
+    const text = sqlText(rankedTotals('all', 'all'));
     expect(text).toContain(
       'array_agg(s.source order by s.source_tokens desc, s.source asc) as sources',
     );
@@ -33,34 +31,18 @@ describe('rankedTotals query builder', () => {
     expect(text).toContain('having sum(s.source_tokens) > 0');
   });
 
-  it('embeds the 7-day period window when week is selected', () => {
-    const query = rankedTotals('week', 'all');
-    const text = sqlString(query as unknown as { queryChunks: unknown[] }).replace(
-      /\s+/g,
-      ' ',
+  it.each([
+    ['week', 7],
+    ['month', 30],
+  ] as const)('limits the %s board to its window', (period, days) => {
+    expect(sqlText(rankedTotals(period, 'all'))).toContain(
+      `d.day > current_date - ${days} ::int`,
     );
-
-    expect(text).toContain('d.day > current_date - 7 ::int');
   });
 
-  it('embeds the 30-day period window when month is selected', () => {
-    const query = rankedTotals('month', 'all');
-    const text = sqlString(query as unknown as { queryChunks: unknown[] }).replace(
-      /\s+/g,
-      ' ',
+  it('filters by one source when asked', () => {
+    expect(sqlText(rankedTotals('all', 'claude-code'))).toContain(
+      'd.source = claude-code',
     );
-
-    expect(text).toContain('d.day > current_date - 30 ::int');
-  });
-
-  it('filters by single agent source when specified', () => {
-    const query = rankedTotals('all', 'claude-code');
-    const text = sqlString(query as unknown as { queryChunks: unknown[] }).replace(
-      /\s+/g,
-      ' ',
-    );
-
-    expect(text).toContain('d.source = claude-code');
   });
 });
-
