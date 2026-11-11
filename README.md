@@ -19,6 +19,14 @@ npm install -g tokenaires
 tokenaires
 ```
 
+The global install can also use pnpm or Bun. The CLI updates itself through whichever manager installed it, even when you launch it from a project that uses another manager.
+
+```sh
+pnpm add -g tokenaires
+# or
+bun add -g tokenaires
+```
+
 ## Commands
 
 | Command | What it does |
@@ -29,10 +37,11 @@ tokenaires
 | `tokenaires sync [--quiet]` | Uploads new records, then prints accepted, already synced and rejected counts, your rank and your profile link. |
 | `tokenaires status` | Shows login state, handle, rank, tier and progress to the next tier. |
 | `tokenaires logout` | Signs this device out on the server, then deletes the saved login and device key. Offline, it still deletes them and says the server copy of the token stays active. |
+| `tokenaires updates on` / `tokenaires updates off` | Enables or disables automatic CLI updates before syncing. Automatic updates are off by default. |
 | `tokenaires schedule on [--every <hours>]` | macOS: installs a LaunchAgent that runs `sync --quiet` every 6 hours, or at the interval you pick with `--every` (whole hours from 2 to 24, for example `--every 2h`, `--every 12h` or `--every 1d`). Linux: prints a crontab line to add. Run it again with a new `--every` to change the interval. |
 | `tokenaires schedule off` | macOS: unloads and removes the LaunchAgent. Linux: prints the line to remove. |
 
-In a terminal, `scan` and `sync` show a live progress bar while logs are read and records upload, then a summary card with your tier, ranks and progress to the next tier. When output is piped, in CI, or with `TERM=dumb`, they print plain result lines without animation, and `NO_COLOR=1` turns colours off. `sync --quiet` prints nothing unless something goes wrong.
+In a terminal, `scan` and `sync` show a live progress bar while logs are read and records upload, then a summary card with your tier, ranks and progress to the next tier. When output is piped, in CI, or with `TERM=dumb`, they print plain result lines without animation, and `NO_COLOR=1` turns colours off. `sync --quiet` prints nothing unless something goes wrong. For a recognized global npm, pnpm or Bun install, sync checks the npm registry at most once every 24 hours. With auto-updates off, the check runs while sync is working and does not delay it. If a newer version is available, interactive sync prints the install command after the sync. Auto-updates are off by default; enable them with `tokenaires updates on`. Quiet scheduled syncs can update too, and if checking or updating fails, sync continues with the installed version. A successful update restarts the sync under the new CLI version. Temporary runs such as `npx`, `pnpm dlx` and `bunx` do not check for or install updates.
 
 The LaunchAgent lives at `~/Library/LaunchAgents/com.tokenaires.sync.plist` and points at the Node binary and script you ran it with. If you used `npx`, install globally first so the path stays valid.
 
@@ -79,6 +88,7 @@ Each sync asks the server for your latest record per source and sends records fr
 - Your login lives in `$XDG_CONFIG_HOME/tokenaires/config.json` (default `~/.config/tokenaires/config.json`), readable only by you (file mode 0600, folder 0700). It holds the API address, your access token, the device id, the device private key and your handle.
 - `tokenaires logout` revokes the device token on the server and deletes that file.
 - To make repeat scans fast, the CLI keeps a scan cache next to the config file at `scan-cache.json.gz`, with the same file permissions. For each log file it stores the local path, size and modification time, and the numeric records that would be uploaded (record id, model, time and token counts). It never stores prompts, responses or file contents, and the paths in it are never uploaded. A file that changes is read again, the cache is rebuilt on each new CLI version, and deleting the file is always safe. Set `TOKENAIRES_NO_CACHE=1` to turn it off.
+- Automatic update preference, the last registry check, and the detected global installer path are stored in `updates.json` next to the login config. The check sends a version request to the public npm registry. It does not run for scans or temporary package runner copies. The installer path stays on your computer and helps identify the original manager if its command is later unavailable.
 - SQLite databases are opened read only in immutable mode, so the CLI never writes to them or creates journal files next to them. When a small database has recent changes still in its write ahead log, the database and log are copied to a private temporary folder, read there and deleted.
 
 ## Anti tamper
