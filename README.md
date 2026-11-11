@@ -29,8 +29,8 @@ tokenaires
 | `tokenaires sync [--quiet]` | Uploads new records, then prints accepted, already synced and rejected counts, your rank and your profile link. |
 | `tokenaires status` | Shows login state, handle, rank, tier and progress to the next tier. |
 | `tokenaires logout` | Signs this device out on the server, then deletes the saved login and device key. Offline, it still deletes them and says the server copy of the token stays active. |
-| `tokenaires schedule on [--every <hours>]` | macOS: installs a LaunchAgent that runs `sync --quiet` every 6 hours, or at the interval you pick with `--every` (whole hours from 2 to 24, for example `--every 2h`, `--every 12h` or `--every 1d`). Linux: prints a crontab line to add. Run it again with a new `--every` to change the interval. |
-| `tokenaires schedule off` | macOS: unloads and removes the LaunchAgent. Linux: prints the line to remove. |
+| `tokenaires schedule on [--every <hours>]` | macOS: installs a LaunchAgent that runs `sync --quiet` every 6 hours, or at the interval you pick with `--every` (whole hours from 2 to 24, for example `--every 2h`, `--every 12h` or `--every 1d`). Windows: creates a Task Scheduler task via `schtasks`. Linux: prints a crontab line to add. Run it again with a new `--every` to change the interval. |
+| `tokenaires schedule off` | macOS: unloads and removes the LaunchAgent. Windows: removes the Task Scheduler task. Linux: prints the line to remove. |
 
 In a terminal, `scan` and `sync` show a live progress bar while logs are read and records upload, then a summary card with your tier, ranks and progress to the next tier. When output is piped, in CI, or with `TERM=dumb`, they print plain result lines without animation, and `NO_COLOR=1` turns colours off. `sync --quiet` prints nothing unless something goes wrong.
 
