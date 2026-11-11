@@ -27,6 +27,7 @@ export const ENV_KEYS = {
   clineData: 'CLINE_DATA_DIR',
   clineSessions: 'CLINE_SESSION_DATA_DIR',
   zedHome: 'ZED_HOME',
+  devinSessionsDir: 'DEVIN_SESSIONS_DIR',
   noBrowser: 'TOKENAIRES_NO_BROWSER',
   noCache: 'TOKENAIRES_NO_CACHE',
 } as const;
@@ -84,6 +85,7 @@ export const SCHEDULE_ENV_PASSTHROUGH = [
   ENV_KEYS.clineSessions,
   ENV_KEYS.openCodeDbPrefix,
   ENV_KEYS.zedHome,
+  ENV_KEYS.devinSessionsDir,
 ] as const;
 
 function trimSlash(url: string): string {
