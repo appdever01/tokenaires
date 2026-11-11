@@ -49,20 +49,22 @@ describe('Devin parser', () => {
     expect(records).not.toBeNull();
     expect(records).toHaveLength(2);
 
-    const r1 = records!.find((r) => r.recordId === 'test-session-001:3');
+    const r1 = records!.find((r) => r.recordId === devinRecordId('test-session-001', 3, '2026-11-09T12:02:00.000Z'));
     expect(r1).toBeDefined();
     expect(r1!.source).toBe('devin');
     expect(r1!.model).toBe('swe-2-flash-medium');
     expect(r1!.occurredAt).toBe('2026-11-09T12:02:00.000Z');
-    expect(r1!.inputTokens).toBe(15000);
+    expect(r1!.inputTokens).toBe(7000);
     expect(r1!.outputTokens).toBe(250);
     expect(r1!.cacheReadTokens).toBe(8000);
     expect(r1!.cacheWriteTokens).toBe(0);
 
-    const r2 = records!.find((r) => r.recordId === 'test-session-001:4');
+    const r2 = records!.find((r) => r.recordId === devinRecordId('test-session-001', 4, '2026-11-09T12:03:00.000Z'));
     expect(r2).toBeDefined();
     expect(r2!.model).toBe('swe-2-flash-medium');
     expect(r2!.outputTokens).toBe(300);
+    expect(r2!.inputTokens).toBe(6000);
+    expect(r2!.cacheReadTokens).toBe(12000);
   });
 
   it('skips steps without completion tokens or without metrics', () => {
@@ -90,11 +92,26 @@ describe('Devin parser', () => {
     expect(records).toEqual([]);
   });
 
-  it('validates devin record ids against native pattern', () => {
-    expect(devinRecordId('highly-baroness', 10)).toBe('highly-baroness:10');
-    expect(devinRecordId('tarry-sage', 'step-42')).toBe('tarry-sage:step-42');
-    expect(devinRecordId('', 1)).toBeNull();
-    expect(devinRecordId('short', 1)).toBeNull();
+  it('hashes record ids so short session names from different people never collide', () => {
+    const at = '2026-11-09T12:00:00.000Z';
+    const id = devinRecordId('tarry-sage', 9, at);
+    expect(id).toMatch(/^devin:[0-9a-f]{32}$/);
+    expect(id).toMatch(/^[A-Za-z0-9][A-Za-z0-9_.:-]{7,159}$/);
+    expect(devinRecordId('tarry-sage', 9, at)).toBe(id);
+    expect(devinRecordId('tarry-sage', 9, '2026-11-10T08:00:00.000Z')).not.toBe(id);
+    expect(devinRecordId('tarry-sage', 10, at)).not.toBe(id);
+    expect(devinRecordId('', 1, at)).toBeNull();
+    expect(devinRecordId('tarry-sage', '', at)).toBeNull();
+  });
+
+  it('keeps prompt tokens whole when the cached count does not fit inside them', () => {
+    const records = parseDevinContent(
+      makeDevinTranscript({
+        sessionId: 'odd-cache',
+        steps: [{ stepId: 1, source: 'agent', timestamp: '2026-11-09T12:00:00.000Z', metrics: { promptTokens: 100, completionTokens: 10, cachedTokens: 400 } }],
+      }),
+    );
+    expect(records?.[0]).toMatchObject({ inputTokens: 100, cacheReadTokens: 0, outputTokens: 10 });
   });
 
   it('discovers transcript files and respects DEVIN_SESSIONS_DIR', async () => {
@@ -128,7 +145,7 @@ describe('Devin parser', () => {
 
       const parsed = await parseDevinFile(sessionFile);
       expect(parsed).toHaveLength(1);
-      expect(parsed![0].recordId).toBe('session-abc:1');
+      expect(parsed![0].recordId).toBe(devinRecordId('session-abc', 1, '2026-11-09T12:00:00.000Z'));
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

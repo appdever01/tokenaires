@@ -1,13 +1,21 @@
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import type { UsageRecord } from '@tokenaires/contracts';
-import { child, count, isObject, isoTime, parseObject, RECORD_ID_PATTERN, text, type JsonObject } from '@/parsers/json';
+import { child, count, isObject, isoTime, parseObject, text, type JsonObject } from '@/parsers/json';
 import { hasTokens } from '@/parsers/merge';
 
-export function devinRecordId(sessionId: string, stepId: unknown): string | null {
-  const stepStr = typeof stepId === 'number' || typeof stepId === 'string' ? String(stepId).trim() : '';
-  if (!stepStr) return null;
-  const combined = `${sessionId}:${stepStr}`;
-  return RECORD_ID_PATTERN.test(combined) ? combined : null;
+const ID_PREFIX = 'devin:';
+const ID_HEX_LENGTH = 32;
+
+export function devinRecordId(sessionId: string, stepId: unknown, occurredAt: string): string | null {
+  const step = typeof stepId === 'number' || typeof stepId === 'string' ? String(stepId).trim() : '';
+  if (!sessionId.trim() || !step) return null;
+  const digest = createHash('sha256').update(`${sessionId}|${step}|${occurredAt}`).digest('hex');
+  return `${ID_PREFIX}${digest.slice(0, ID_HEX_LENGTH)}`;
+}
+
+export function uncachedInput(promptTokens: number, cachedTokens: number): number {
+  return cachedTokens <= promptTokens ? promptTokens - cachedTokens : promptTokens;
 }
 
 function modelOf(step: JsonObject, fallbackModel: string | null): string | null {
@@ -26,18 +34,20 @@ function stepRecord(step: JsonObject, sessionId: string, fallbackModel: string |
 
   const occurredAt = isoTime(step.timestamp);
   const model = modelOf(step, fallbackModel)?.trim();
-  const recordId = devinRecordId(sessionId, step.step_id);
+  if (!occurredAt || !model) return null;
+  const recordId = devinRecordId(sessionId, step.step_id, occurredAt);
+  if (!recordId) return null;
 
-  if (!occurredAt || !model || !recordId) return null;
-
+  const promptTokens = count(metrics, 'prompt_tokens');
+  const cachedTokens = count(metrics, 'cached_tokens');
   const record: UsageRecord = {
     source: 'devin',
     recordId,
     model,
     occurredAt,
-    inputTokens: count(metrics, 'prompt_tokens'),
+    inputTokens: uncachedInput(promptTokens, cachedTokens),
     outputTokens,
-    cacheReadTokens: count(metrics, 'cached_tokens'),
+    cacheReadTokens: cachedTokens <= promptTokens ? cachedTokens : 0,
     cacheWriteTokens: 0,
     reasoningTokens: 0,
   };
