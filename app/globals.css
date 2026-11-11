@@ -26,6 +26,7 @@
   --claude: 15 63% 60%;
   --gemini: 217 89% 68%;
   --qwen: 252 85% 72%;
+  --deepseek: 230 99% 68%;
   --heat-0: 0 0% 100% / 0.06;
 }
 
@@ -52,6 +53,7 @@
   --claude: 15 60% 44%;
   --gemini: 217 75% 48%;
   --qwen: 252 65% 52%;
+  --deepseek: 230 84% 52%;
   --heat-0: 240 10% 4% / 0.06;
 }
 
@@ -75,6 +77,7 @@
   --color-claude: hsl(var(--claude));
   --color-gemini: hsl(var(--gemini));
   --color-qwen: hsl(var(--qwen));
+  --color-deepseek: hsl(var(--deepseek));
   --font-sans: var(--font-aspekta), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --radius-panel: 20px;
