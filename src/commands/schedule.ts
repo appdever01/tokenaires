@@ -3,16 +3,8 @@ import { dirname } from 'node:path';
 import type { Context } from '@/context';
 import { UsageError } from '@/api/errors';
 import { SCHEDULE } from '@/config';
-import {
-  cronLine,
-  intervalLabel,
-  isEphemeralPath,
-  plistPath,
-  renderPlist,
-  type ScheduleTarget,
-  windowsCreateArguments,
-  windowsDeleteArguments,
-} from '@/schedule/launchd';
+import { cronLine, intervalLabel, plistPath, renderPlist, type ScheduleTarget } from '@/schedule/launchd';
+import { isPackageRunnerPath, windowsCreateArguments, windowsDeleteArguments, windowsQueryArguments } from '@/schedule/windows';
 import { theme } from '@/ui/theme';
 
 export type ScheduleMode = 'on' | 'off';
@@ -57,17 +49,16 @@ async function windowsOn(ctx: Context, hours: number): Promise<void> {
 }
 
 async function windowsOff(ctx: Context): Promise<void> {
-  const deleted = await ctx.run('schtasks', windowsDeleteArguments());
-  if (deleted.code === 0) {
-    ctx.out.line(`  ${theme.good('Schedule removed.')}`);
-    return;
-  }
-  const errorText = `${deleted.stderr} ${deleted.stdout}`.toLowerCase();
-  if (errorText.includes('cannot find') || errorText.includes('does not exist')) {
+  const existing = await ctx.run('schtasks', windowsQueryArguments());
+  if (existing.code !== 0) {
     ctx.out.line('  No schedule was set up.');
     return;
   }
-  throw new UsageError(`schtasks could not remove the scheduled task: ${deleted.stderr.trim() || 'unknown error'}`);
+  const deleted = await ctx.run('schtasks', windowsDeleteArguments());
+  if (deleted.code !== 0) {
+    throw new UsageError(`schtasks could not remove the scheduled task: ${deleted.stderr.trim() || 'unknown error'}`);
+  }
+  ctx.out.line(`  ${theme.good('Schedule removed.')}`);
 }
 
 function linux(ctx: Context, mode: ScheduleMode, hours: number): void {
@@ -84,16 +75,14 @@ function linux(ctx: Context, mode: ScheduleMode, hours: number): void {
 export async function schedule(ctx: Context, mode: ScheduleMode, options: ScheduleOptions = {}): Promise<void> {
   const hours = options.hours ?? SCHEDULE.defaultHours;
   if (!ctx.scriptPath) throw new UsageError('Could not work out where the tokenaires script lives.');
-  if (mode === 'on' && isEphemeralPath(ctx.scriptPath)) {
-    throw new UsageError(
-      'Cannot schedule automated sync from a temporary runner (npx, bunx, or pnpm dlx). Install tokenaires globally first.',
-    );
-  }
   ctx.out.line();
   if (ctx.platform === 'darwin') await (mode === 'on' ? macOn(ctx, hours) : macOff(ctx));
   else if (ctx.platform === 'win32') await (mode === 'on' ? windowsOn(ctx, hours) : windowsOff(ctx));
   else if (ctx.platform === 'linux') linux(ctx, mode, hours);
   else throw new UsageError('Scheduling is supported on macOS, Windows and Linux. Run tokenaires sync from your own scheduler.');
+  if (mode === 'on' && isPackageRunnerPath(ctx.scriptPath)) {
+    ctx.out.line(theme.dim('  This copy runs from a package runner cache, which can be cleared. If syncs stop,'));
+    ctx.out.line(theme.dim('  install it with npm i -g tokenaires and run tokenaires schedule on again.'));
+  }
   ctx.out.line();
 }
-

@@ -154,10 +154,8 @@ describe('schedule', () => {
     const ctx = testContext({ home, env: {}, platform: 'win32' });
     await schedule(ctx, 'off');
     expect(ctx.commands).toEqual([
-      {
-        command: 'schtasks',
-        args: ['/delete', '/tn', 'com.tokenaires.sync', '/f'],
-      },
+      { command: 'schtasks', args: ['/query', '/tn', 'com.tokenaires.sync'] },
+      { command: 'schtasks', args: ['/delete', '/tn', 'com.tokenaires.sync', '/f'] },
     ]);
     expect(ctx.lines.join('\n')).toContain('Schedule removed.');
   });
@@ -167,11 +165,11 @@ describe('schedule', () => {
       home,
       env: {},
       platform: 'win32',
-      run: (_command, _args) =>
+      run: () =>
         Promise.resolve({
           code: 1,
           stdout: '',
-          stderr: 'ERROR: The specified task name "com.tokenaires.sync" does not exist in the system.',
+          stderr: 'FEHLER: Die angegebene Aufgabe wurde nicht gefunden.',
         }),
     });
     await schedule(ctx, 'off');
@@ -183,7 +181,7 @@ describe('schedule', () => {
       home,
       env: {},
       platform: 'win32',
-      run: (_command, _args) =>
+      run: () =>
         Promise.resolve({
           code: 1,
           stdout: '',
@@ -193,23 +191,22 @@ describe('schedule', () => {
     await expect(schedule(ctx, 'on')).rejects.toThrow('schtasks could not create the scheduled task: ERROR: Access is denied.');
   });
 
-  it('rejects scheduling when run from an ephemeral package runner', async () => {
-    for (const runnerPath of [
-      '/home/user/.npm/_npx/a1b2c3/node_modules/tokenaires/dist/cli.js',
-      '/home/user/.cache/pnpm/dlx/123/node_modules/tokenaires/dist/cli.js',
-      '/home/user/.bun/install/cache/tokenaires@0.3.0/dist/cli.js',
-      'C:\\Users\\User\\AppData\\Local\\Temp\\_npx\\node_modules\\tokenaires\\dist\\cli.js',
-    ]) {
-      const ctx = testContext({
-        home,
-        env: {},
-        platform: 'win32',
-        scriptPath: runnerPath,
-      });
-      await expect(schedule(ctx, 'on')).rejects.toThrow(
-        'Cannot schedule automated sync from a temporary runner (npx, bunx, or pnpm dlx). Install tokenaires globally first.',
-      );
+  it('still schedules from a package runner cache, with a hint to install globally', async () => {
+    for (const [platform, runnerPath] of [
+      ['linux', '/home/user/.npm/_npx/a1b2c3/node_modules/tokenaires/dist/cli.js'],
+      ['linux', '/home/user/.cache/pnpm/dlx/123/node_modules/tokenaires/dist/cli.js'],
+      ['darwin', '/Users/user/.bun/install/cache/tokenaires@0.3.0/dist/cli.js'],
+      ['win32', 'C:\\Users\\User\\AppData\\Local\\npm-cache\\_npx\\abc\\node_modules\\tokenaires\\dist\\cli.js'],
+    ] as const) {
+      const ctx = testContext({ home, env: {}, platform, scriptPath: runnerPath });
+      await schedule(ctx, 'on');
+      expect(ctx.lines.join('\n')).toContain('npm i -g tokenaires');
     }
   });
-});
 
+  it('gives no runner hint for a global install', async () => {
+    const ctx = testContext({ home, env: {}, platform: 'linux', scriptPath: '/usr/local/lib/node_modules/tokenaires/dist/cli.js' });
+    await schedule(ctx, 'on');
+    expect(ctx.lines.join('\n')).not.toContain('npm i -g tokenaires');
+  });
+});

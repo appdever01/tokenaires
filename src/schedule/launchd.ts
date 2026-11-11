@@ -97,32 +97,3 @@ function shellQuote(value: string): string {
 export function cronLine(target: ScheduleTarget): string {
   return `${cronExpression(target.hours)} ${syncArguments(target).map(shellQuote).join(' ')}`;
 }
-
-export function isEphemeralPath(path: string): boolean {
-  const normalized = path.replace(/\\/g, '/');
-  return (
-    /(^|\/)(_npx|pnpm(\/|-)dlx|dlx|\.bun\/install\/cache)(\/|$)/i.test(normalized) ||
-    /(^|\/)(Temp|tmp)(\/|$)/i.test(normalized)
-  );
-}
-
-export function windowsTaskRun(target: ScheduleTarget): string {
-  const quote = (arg: string) => `"${arg.replace(/"/g, '\\"')}"`;
-  return [quote(target.nodePath), quote(target.scriptPath), 'sync', '--quiet'].join(' ');
-}
-
-export function windowsCreateArguments(target: ScheduleTarget): string[] {
-  const args = ['/create', '/tn', SCHEDULE.label, '/tr', windowsTaskRun(target)];
-  if (target.hours >= HOURS_PER_DAY) {
-    args.push('/sc', 'DAILY');
-  } else {
-    args.push('/sc', 'HOURLY', '/mo', String(target.hours));
-  }
-  args.push('/f');
-  return args;
-}
-
-export function windowsDeleteArguments(): string[] {
-  return ['/delete', '/tn', SCHEDULE.label, '/f'];
-}
-
