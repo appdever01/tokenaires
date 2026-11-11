@@ -52,6 +52,7 @@ describe('evaluateRecord', () => {
       'zed',
       '8e484826-f0f6-42bf-8b71-c9d22bd35c5c:01d380b8-79b4-447e-a6fb-a8300858a7ae',
     ],
+    ['devin', 'tarry-sage:9'],
   ] as const)('accepts a native %s record id', (source, recordId) => {
     expect(
       evaluateRecord({ ...base, source, recordId, model: 'gemini-3-pro' }, now),
@@ -108,6 +109,21 @@ describe('evaluateRecord', () => {
     ).toBe('before_source_launch');
     expect(
       evaluateRecord({ ...zed, occurredAt: '2025-02-01T00:00:00Z' }, now),
+    ).toBeNull();
+  });
+
+  it('refuses Devin records older than its CLI launch', () => {
+    const devin = {
+      ...base,
+      source: 'devin' as const,
+      recordId: 'tarry-sage:9',
+      model: 'swe-2-flash-medium',
+    };
+    expect(
+      evaluateRecord({ ...devin, occurredAt: '2026-04-26T23:59:59Z' }, now),
+    ).toBe('before_source_launch');
+    expect(
+      evaluateRecord({ ...devin, occurredAt: '2026-05-01T00:00:00Z' }, now),
     ).toBeNull();
   });
 
