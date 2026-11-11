@@ -1,6 +1,7 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import { homedir, hostname } from 'node:os';
+import { resolve } from 'node:path';
 
 export interface Output {
   line(text?: string): void;
@@ -22,6 +23,13 @@ export interface RunResult {
 
 export type Runner = (command: string, args: string[]) => Promise<RunResult>;
 
+export function commandInvocation(command: string, args: string[], platform: NodeJS.Platform): { command: string; args: string[] } {
+  const windowsPackageManager = platform === 'win32' && (command === 'npm' || command === 'pnpm');
+  return windowsPackageManager
+    ? { command: 'cmd.exe', args: ['/d', '/s', '/c', `${command}.cmd ${args.join(' ')}`] }
+    : { command, args };
+}
+
 export interface Context {
   env: NodeJS.ProcessEnv;
   home: string;
@@ -29,18 +37,21 @@ export interface Context {
   hostname: string;
   nodePath: string;
   scriptPath: string;
+  invokedPath: string;
   out: Output;
   term: Terminal;
   fetch: typeof fetch;
   sleep(ms: number): Promise<void>;
   openUrl(url: string): void;
   run: Runner;
+  restart(scriptPath: string, args: string[]): Promise<number | null>;
   now(): number;
 }
 
 export const runCommand: Runner = (command, args) =>
   new Promise((resolve) => {
-    execFile(command, args, (error, stdout, stderr) => {
+    const invocation = commandInvocation(command, args, process.platform);
+    execFile(invocation.command, invocation.args, (error, stdout, stderr) => {
       const code = error ? (typeof error.code === 'number' ? error.code : 1) : 0;
       resolve({ code, stdout, stderr });
     });
@@ -90,6 +101,7 @@ export function createTerminal(stream: NodeJS.WriteStream, env: NodeJS.ProcessEn
 
 export function createContext(): Context {
   const platform = process.platform;
+  const invokedPath = process.argv[1] ? resolve(process.argv[1]) : '';
   return {
     env: process.env,
     home: homedir(),
@@ -97,6 +109,7 @@ export function createContext(): Context {
     hostname: hostname(),
     nodePath: process.execPath,
     scriptPath: resolveScript(process.argv[1]),
+    invokedPath,
     out: {
       line: (text = '') => {
         process.stdout.write(`${text}\n`);
@@ -114,6 +127,19 @@ export function createContext(): Context {
       execFile(opener, [url], () => undefined).on('error', () => undefined);
     },
     run: runCommand,
+    restart: (scriptPath, args) =>
+      new Promise((resolve) => {
+        const child = spawn(process.execPath, [scriptPath || invokedPath, ...args], {
+          env: { ...process.env, TOKENAIRES_UPDATE_RESTART: '1' },
+          stdio: 'inherit',
+        });
+        child.once('error', () => {
+          resolve(null);
+        });
+        child.once('close', (code) => {
+          resolve(code ?? 1);
+        });
+      }),
     now: () => Date.now(),
   };
 }

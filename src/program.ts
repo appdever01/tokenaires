@@ -10,6 +10,7 @@ import { parseHours } from '@/schedule/launchd';
 import { status } from '@/commands/status';
 import { sync } from '@/commands/sync';
 import { configPath, loadConfig } from '@/store';
+import { autoUpdateEnabled, findCliInstaller, setAutoUpdate, startCliUpdateCheck } from '@/updates';
 import { renderHeader } from '@/ui/header';
 import { symbols, theme } from '@/ui/theme';
 
@@ -83,6 +84,19 @@ export function buildProgram(ctx: Context): Command {
     });
   program.command('logout').description('remove the saved login and device key').action(() => logout(ctx));
   program
+    .command('updates')
+    .description('enable or disable automatic CLI updates before syncing')
+    .argument('<mode>', 'on or off')
+    .action(async (mode: string) => {
+      if (mode !== 'on' && mode !== 'off') throw new InvalidArgumentError('Use on or off.');
+      const installer = await findCliInstaller(ctx, ['sync']);
+      if (!installer) {
+        ctx.out.line('  Automatic updates are only available for recognized global installs.');
+        return;
+      }
+      await setAutoUpdate(ctx, mode === 'on');
+    });
+  program
     .command('schedule')
     .description(`sync automatically, every ${SCHEDULE.defaultHours} hours by default`)
     .argument('<mode>', 'on or off', parseMode)
@@ -92,10 +106,34 @@ export function buildProgram(ctx: Context): Command {
 }
 
 export async function runCli(ctx: Context, argv: string[]): Promise<number> {
+  let backgroundUpdate: ReturnType<typeof startCliUpdateCheck> | null = null;
   try {
+    const installer = await findCliInstaller(ctx, argv);
+    if (installer && await autoUpdateEnabled(ctx)) {
+      const update = startCliUpdateCheck(ctx, argv, installer);
+      const result = await update.result;
+      if (result.kind === 'restarted') return result.exitCode;
+      if (result.kind === 'notice') ctx.out.error(`  ${result.text}`);
+    } else if (installer) {
+      backgroundUpdate = startCliUpdateCheck(ctx, argv, installer);
+    }
     await buildProgram(ctx).parseAsync(argv, { from: 'user' });
+    if (backgroundUpdate) {
+      const result = await Promise.race([
+        backgroundUpdate.result,
+        new Promise<{ kind: 'none' }>((resolve) => {
+          setTimeout(() => {
+            resolve({ kind: 'none' });
+          }, 50);
+        }),
+      ]);
+      backgroundUpdate.cancel();
+      if (result.kind === 'notice') ctx.out.line(`  ${result.text}`);
+      if (result.kind === 'restarted') return result.exitCode;
+    }
     return 0;
   } catch (error) {
+    backgroundUpdate?.cancel();
     ctx.out.error(`  ${theme.bad(`${symbols.cross} Error`)} ${describeError(error)}`);
     return 1;
   }

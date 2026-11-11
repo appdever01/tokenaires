@@ -26,6 +26,7 @@ export function testContext(overrides: Partial<Context> & { home: string; env: N
     hostname: 'test-host',
     nodePath: '/usr/local/bin/node',
     scriptPath: '/opt/tokenaires/dist/cli.js',
+    invokedPath: '/opt/tokenaires/dist/cli.js',
     out: {
       line: (text = '') => lines.push(stripAnsi(text)),
       error: (text) => errors.push(stripAnsi(text)),
@@ -42,6 +43,7 @@ export function testContext(overrides: Partial<Context> & { home: string; env: N
       commands.push({ command, args });
       return Promise.resolve({ code: 0, stdout: '', stderr: '' });
     },
+    restart: () => Promise.resolve(0),
     now: () => clock,
     ...overrides,
   };
