@@ -1,7 +1,7 @@
 "use client";
 
+import React from "react";
 import type { BoardEntry } from "@tokenaires/contracts";
-import { motion } from "motion/react";
 import { ShieldWarningIcon } from "@solar-icons/react/linear";
 import Link from "next/link";
 import { AgentStack, AgentStackCompact, agentList } from "@/components/brand/agent-stack";
@@ -10,11 +10,11 @@ import { Avatar } from "@/components/ui/avatar";
 import { Tooltip } from "@/components/ui/tooltip";
 import { formatCompact, formatFull } from "@/lib/format";
 import { Movement } from "./movement";
-import { ROW_GRID, ROW_STAGGER_CAP_S, ROW_STAGGER_S, ROW_TOOLS_MAX } from "./row-grid";
+import { ROW_GRID, ROW_TOOLS_MAX } from "./row-grid";
 import { ShareBar } from "./share-bar";
 
 
-export function RankHeader() {
+export const RankHeader = React.memo(function RankHeader() {
   return (
     <div className={`${ROW_GRID} label px-3 pb-2`} aria-hidden="true">
       <span>Rank</span>
@@ -25,28 +25,18 @@ export function RankHeader() {
       <span className="text-right">Net worth</span>
     </div>
   );
-}
+});
 
 interface RankRowProps {
   entry: BoardEntry;
   leader: number;
   showMovement: boolean;
-  index: number;
 }
 
-export function RankRow({ entry, leader, showMovement, index }: RankRowProps) {
+export const RankRow = React.memo(function RankRow({ entry, leader, showMovement }: RankRowProps) {
   const name = entry.user.name ?? entry.user.handle;
   return (
-    <motion.li
-      layout="position"
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{
-        layout: { type: "spring", stiffness: 420, damping: 40 },
-        opacity: { duration: 0.25, delay: Math.min(index * ROW_STAGGER_S, ROW_STAGGER_CAP_S) },
-        y: { duration: 0.3, delay: Math.min(index * ROW_STAGGER_S, ROW_STAGGER_CAP_S) },
-      }}
+    <li
       className={`${ROW_GRID} rounded-[14px] px-3 transition-colors duration-150 hover:bg-foreground/[0.035]`}
     >
       <span className="flex items-baseline gap-1.5">
@@ -74,7 +64,7 @@ export function RankRow({ entry, leader, showMovement, index }: RankRowProps) {
         </span>
       </Link>
       <span className="hidden min-w-0 items-center md:flex">
-        <AgentStack sources={entry.sources} max={ROW_TOOLS_MAX} size="sm" />
+        <AgentStack sources={entry.sources} max={ROW_TOOLS_MAX} size="sm" withTooltip={false} />
       </span>
       <span className="hidden md:block">
         <TierBadge tier={entry.tier} />
@@ -84,6 +74,6 @@ export function RankRow({ entry, leader, showMovement, index }: RankRowProps) {
         <span className="md:hidden">{formatCompact(entry.tokens)}</span>
         <span className="hidden md:inline">{formatFull(entry.tokens)}</span>
       </span>
-    </motion.li>
+    </li>
   );
-}
+});
