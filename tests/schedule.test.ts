@@ -92,4 +92,124 @@ describe('schedule', () => {
     await schedule(every3, 'on', { hours: 3 });
     expect(every3.lines.join('\n')).toContain('0 */3 * * * /usr/local/bin/node');
   });
+
+  it('creates a scheduled task on Windows with schtasks', async () => {
+    const ctx = testContext({
+      home,
+      env: {},
+      platform: 'win32',
+      nodePath: 'C:\\Program Files\\nodejs\\node.exe',
+      scriptPath: 'C:\\Users\\User\\AppData\\Roaming\\npm\\node_modules\\tokenaires\\dist\\cli.js',
+    });
+    await schedule(ctx, 'on');
+    expect(ctx.commands).toEqual([
+      {
+        command: 'schtasks',
+        args: [
+          '/create',
+          '/tn',
+          'com.tokenaires.sync',
+          '/tr',
+          '"C:\\Program Files\\nodejs\\node.exe" "C:\\Users\\User\\AppData\\Roaming\\npm\\node_modules\\tokenaires\\dist\\cli.js" sync --quiet',
+          '/sc',
+          'HOURLY',
+          '/mo',
+          '6',
+          '/f',
+        ],
+      },
+    ]);
+    expect(ctx.lines.join('\n')).toContain('Tokenaires will sync every 6 hours.');
+    expect(ctx.lines.join('\n')).toContain('Task name: com.tokenaires.sync');
+  });
+
+  it('schedules daily on Windows when hours is 24', async () => {
+    const ctx = testContext({
+      home,
+      env: {},
+      platform: 'win32',
+      nodePath: 'C:\\node.exe',
+      scriptPath: 'C:\\tokenaires\\dist\\cli.js',
+    });
+    await schedule(ctx, 'on', { hours: 24 });
+    expect(ctx.commands).toEqual([
+      {
+        command: 'schtasks',
+        args: [
+          '/create',
+          '/tn',
+          'com.tokenaires.sync',
+          '/tr',
+          '"C:\\node.exe" "C:\\tokenaires\\dist\\cli.js" sync --quiet',
+          '/sc',
+          'DAILY',
+          '/f',
+        ],
+      },
+    ]);
+    expect(ctx.lines.join('\n')).toContain('Tokenaires will sync every day.');
+  });
+
+  it('removes scheduled task on Windows when turned off', async () => {
+    const ctx = testContext({ home, env: {}, platform: 'win32' });
+    await schedule(ctx, 'off');
+    expect(ctx.commands).toEqual([
+      {
+        command: 'schtasks',
+        args: ['/delete', '/tn', 'com.tokenaires.sync', '/f'],
+      },
+    ]);
+    expect(ctx.lines.join('\n')).toContain('Schedule removed.');
+  });
+
+  it('reports when no schedule was set up on Windows', async () => {
+    const ctx = testContext({
+      home,
+      env: {},
+      platform: 'win32',
+      run: (_command, _args) =>
+        Promise.resolve({
+          code: 1,
+          stdout: '',
+          stderr: 'ERROR: The specified task name "com.tokenaires.sync" does not exist in the system.',
+        }),
+    });
+    await schedule(ctx, 'off');
+    expect(ctx.lines.join('\n')).toContain('No schedule was set up.');
+  });
+
+  it('reports a schtasks create failure', async () => {
+    const ctx = testContext({
+      home,
+      env: {},
+      platform: 'win32',
+      run: (_command, _args) =>
+        Promise.resolve({
+          code: 1,
+          stdout: '',
+          stderr: 'ERROR: Access is denied.',
+        }),
+    });
+    await expect(schedule(ctx, 'on')).rejects.toThrow('schtasks could not create the scheduled task: ERROR: Access is denied.');
+  });
+
+  it('rejects scheduling when run from an ephemeral package runner', async () => {
+    for (const runnerPath of [
+      '/home/user/.npm/_npx/a1b2c3/node_modules/tokenaires/dist/cli.js',
+      '/home/user/.cache/pnpm/dlx/123/node_modules/tokenaires/dist/cli.js',
+      '/home/user/.bun/install/cache/tokenaires@0.3.0/dist/cli.js',
+      'C:\\Users\\User\\AppData\\Local\\Temp\\_npx\\node_modules\\tokenaires\\dist\\cli.js',
+    ]) {
+      const ctx = testContext({
+        home,
+        env: {},
+        platform: 'win32',
+        scriptPath: runnerPath,
+      });
+      await expect(schedule(ctx, 'on')).rejects.toThrow(
+        'Cannot schedule automated sync from a temporary runner (npx, bunx, or pnpm dlx). Install tokenaires globally first.',
+      );
+    }
+  });
 });
+
