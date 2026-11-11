@@ -6,7 +6,6 @@ import {
   MeSummarySchema,
   SIGNATURE_HEADERS,
   SyncCursorSchema,
-  type AgentSource,
   type DevicePollRequest,
   type DevicePollResponse,
   type DeviceStartResponse,
