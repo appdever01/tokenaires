@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const get = vi.fn();
-vi.mock("@/lib/api/client", () => ({ api: { get } }));
+vi.mock("@/lib/api/client", () => ({ api: { get: (...args: unknown[]) => get(...args) } }));
 
 const { getBoard } = await import("@/lib/api/boards");
 const { BOARD_SEARCH_MAX_LENGTH, boardQueryString, readBoardParams, searchPushed, searchSyncFrom, searchUrlChanged } = await import(

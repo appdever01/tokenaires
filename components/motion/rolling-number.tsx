@@ -10,9 +10,10 @@ interface RollingNumberProps {
 }
 
 export function RollingNumber({ value, format, className }: RollingNumberProps) {
-  const [shown, setShown] = useState(value);
+  const [shown, setShown] = useState(0);
   useEffect(() => {
-    setShown(value);
+    const frame = requestAnimationFrame(() => setShown(value));
+    return () => cancelAnimationFrame(frame);
   }, [value]);
-  return <NumberFlow value={shown} format={format} className={className} />;
+  return <NumberFlow value={shown} format={format} className={className} willChange />;
 }

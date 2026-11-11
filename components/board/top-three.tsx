@@ -1,14 +1,15 @@
 "use client";
 
-import React from "react";
 import type { BoardEntry } from "@tokenaires/contracts";
 import { UserPlusRoundedIcon } from "@solar-icons/react/linear";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { AgentStack, AgentStackCompact, agentList } from "@/components/brand/agent-stack";
 import { TierBadge } from "@/components/brand/tier-badge";
 import { GlowSurface } from "@/components/motion/glow-surface";
+import { RollingNumber } from "@/components/motion/rolling-number";
 import { Avatar } from "@/components/ui/avatar";
-import { formatCompact, formatFull } from "@/lib/format";
+import { formatFull } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { LADDER } from "./ladder";
 import { ShareBar } from "./share-bar";
@@ -33,19 +34,25 @@ function cardLabel(entry: BoardEntry, name: string) {
   return entry.sources.length > 0 ? `${base}, uses ${agentList(entry.sources)}` : base;
 }
 
+const COMPACT = { notation: "compact", maximumFractionDigits: 1 } as const;
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 function Step({
   rank,
   height,
+  delay,
 }: {
   rank: number;
   height: string;
+  delay: number;
 }) {
   const first = rank === 1;
   return (
-    <div
+    <motion.div
       aria-hidden="true"
+      initial={{ scaleY: 0, opacity: 0 }}
+      animate={{ scaleY: 1, opacity: 1 }}
+      transition={{ duration: 0.55, delay: 0.1 + delay, ease: EASE }}
       style={{ transformOrigin: "bottom" }}
       className={cn(
         "relative overflow-hidden rounded-b-[14px] border-x border-b sm:rounded-b-[var(--radius-card)]",
@@ -64,7 +71,7 @@ function Step({
       >
         {rank}
       </span>
-    </div>
+    </motion.div>
   );
 }
 
@@ -82,7 +89,7 @@ function OpenCard({ rank }: { rank: number }) {
   );
 }
 
-const CompactCard = React.memo(function CompactCard({ entry }: { entry: BoardEntry }) {
+function CompactCard({ entry }: { entry: BoardEntry }) {
   const name = entry.user.name ?? entry.user.handle;
   const first = entry.rank === 1;
   return (
@@ -103,20 +110,20 @@ const CompactCard = React.memo(function CompactCard({ entry }: { entry: BoardEnt
       <span className="relative">
         <RankChip rank={entry.rank} />
       </span>
-      <Avatar src={entry.user.avatarUrl} name={name} size={first ? 44 : 36} className="relative mt-2.5" />
+      <Avatar src={entry.user.avatarUrl} name={name} size={first ? 44 : 36} priority className="relative mt-2.5" />
       <span className="relative mt-2 w-full truncate text-xs font-medium">{name}</span>
       <span
         className={cn("relative mt-0.5 text-[15px] font-medium leading-none tracking-[-0.03em] tabular", first && "text-accent-text")}
         title={`${formatFull(entry.tokens)} tokens`}
       >
-        {formatCompact(entry.tokens)}
+        <RollingNumber value={entry.tokens} format={COMPACT} />
       </span>
       <AgentStackCompact sources={entry.sources} className="relative mt-2" />
     </Link>
   );
-});
+}
 
-const Card = React.memo(function Card({ entry, leader }: { entry: BoardEntry; leader: number }) {
+function Card({ entry, leader }: { entry: BoardEntry; leader: number }) {
   const name = entry.user.name ?? entry.user.handle;
   const first = entry.rank === 1;
   return (
@@ -144,6 +151,7 @@ const Card = React.memo(function Card({ entry, leader }: { entry: BoardEntry; le
             src={entry.user.avatarUrl}
             name={name}
             size={first ? 48 : 40}
+            priority
           />
           <span className="min-w-0">
             <span className="block truncate text-sm font-medium">{name}</span>
@@ -161,11 +169,11 @@ const Card = React.memo(function Card({ entry, leader }: { entry: BoardEntry; le
               )}
               title={`${formatFull(entry.tokens)} tokens`}
             >
-              {formatCompact(entry.tokens)}
+              <RollingNumber value={entry.tokens} format={COMPACT} />
             </span>
             <span className="text-xs text-t3">tokens</span>
           </span>
-          <AgentStack sources={entry.sources} withTooltip={false} />
+          <AgentStack sources={entry.sources} />
         </span>
         <ShareBar
           tokens={entry.tokens}
@@ -175,9 +183,9 @@ const Card = React.memo(function Card({ entry, leader }: { entry: BoardEntry; le
       </Link>
     </GlowSurface>
   );
-});
+}
 
-export const TopThree = React.memo(function TopThree({
+export function TopThree({
   entries,
   leader,
 }: {
@@ -189,11 +197,14 @@ export const TopThree = React.memo(function TopThree({
       aria-label="Top three"
       className="grid grid-cols-3 items-end gap-2 sm:gap-3"
     >
-      {LADDER.map(({ rank, step, order }) => {
+      {LADDER.map(({ rank, step, order, delay }) => {
         const entry = entries.find((candidate) => candidate.rank === rank);
         return (
-          <li
+          <motion.li
             key={entry?.user.handle ?? `open-${rank}`}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay, ease: EASE }}
             className={cn("flex min-w-0 flex-col", order)}
           >
             {entry ? (
@@ -204,10 +215,10 @@ export const TopThree = React.memo(function TopThree({
             ) : (
               <OpenCard rank={rank} />
             )}
-            <Step rank={rank} height={step} />
-          </li>
+            <Step rank={rank} height={step} delay={delay} />
+          </motion.li>
         );
       })}
     </ol>
   );
-});
+}
