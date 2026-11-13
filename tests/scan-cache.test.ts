@@ -6,8 +6,9 @@ import { scanCachePath } from '@/cache/scan-cache';
 import { scanLocal } from '@/scan';
 import { CLAUDE_CWD, CLAUDE_SECRET, claudeAssistant } from './fixtures/claude';
 import { CODEX_SECRET } from './fixtures/codex';
+import { GROK_LINES, GROK_SESSION_ID } from './fixtures/grok-build';
 import { writeFixtureLogs, type LogDirs } from './helpers/logs';
-import { makeTempDir, removeDir } from './helpers/temp';
+import { makeTempDir, removeDir, writeLines } from './helpers/temp';
 
 describe('local scan cache', () => {
   let root = '';
@@ -61,5 +62,22 @@ describe('local scan cache', () => {
     expect(recovered.cachedFiles).toBe(0);
     expect(recovered.records).toHaveLength(7);
     expect(scanCachePath({ ...env, TOKENAIRES_NO_CACHE: '1' }, root)).toBeNull();
+  });
+
+  it('skips Grok Build logs without valid metadata without aborting the scan', async () => {
+    const grokHome = join(root, 'custom-grok');
+    const session = join(grokHome, 'sessions', 'workspace', GROK_SESSION_ID);
+    await writeLines(join(session, 'updates.jsonl'), GROK_LINES);
+    await writeFile(join(session, 'summary.json'), JSON.stringify({ session_kind: 'main' }));
+    await writeLines(join(session, 'terminal', 'updates.jsonl'), GROK_LINES);
+    const recapRequest = join(grokHome, 'sessions', 'recap_requests');
+    await writeLines(join(recapRequest, 'updates.jsonl'), GROK_LINES);
+    await writeFile(join(recapRequest, 'summary.json'), '{');
+
+    const result = await scanLocal({ env: { ...env, GROK_HOME: grokHome }, home: root, cachePath: null });
+
+    expect(result.records.some((record) => record.source === 'claude-code')).toBe(true);
+    expect(result.records.filter((record) => record.source === 'grok-build')).toHaveLength(2);
+    expect(result.files['grok-build']).toBe(1);
   });
 });

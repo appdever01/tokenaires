@@ -16,7 +16,7 @@ describe('schedule', () => {
   });
 
   it('writes a LaunchAgent under the temp HOME and loads it through the injected runner', async () => {
-    const ctx = testContext({ home, env: { XDG_CONFIG_HOME: '/tmp/xdg & co' } });
+    const ctx = testContext({ home, env: { XDG_CONFIG_HOME: '/tmp/xdg & co', GROK_HOME: '/tmp/grok home' } });
     await schedule(ctx, 'on');
     const path = plistPath(home);
     expect(path.startsWith(home)).toBe(true);
@@ -28,6 +28,7 @@ describe('schedule', () => {
     expect(plist).toContain('<string>sync</string>');
     expect(plist).toContain('<string>--quiet</string>');
     expect(plist).toContain('<string>/tmp/xdg &amp; co</string>');
+    expect(plist).toContain('<string>/tmp/grok home</string>');
     expect(ctx.commands).toEqual([
       { command: 'launchctl', args: ['unload', path] },
       { command: 'launchctl', args: ['load', '-w', path] },

@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { login } from '@/commands/login';
@@ -9,10 +9,11 @@ import { RECORD_RULES_VERSION } from '@/config';
 import { configPath, loadConfig } from '@/store';
 import { markFullUpload, syncStatePath } from '@/sync-state';
 import { CLAUDE_SECRET } from './fixtures/claude';
+import { GROK_LINES, GROK_SESSION_ID } from './fixtures/grok-build';
 import { testContext, type TestContext } from './helpers/context';
 import { startFakeServer, type FakeServer } from './helpers/fake-server';
 import { writeFixtureLogs } from './helpers/logs';
-import { makeTempDir, removeDir } from './helpers/temp';
+import { makeTempDir, removeDir, writeLines } from './helpers/temp';
 
 const UPLOAD_KEYS = ['cacheReadTokens', 'cacheWriteTokens', 'inputTokens', 'model', 'occurredAt', 'outputTokens', 'reasoningTokens', 'recordId', 'source'];
 
@@ -84,12 +85,19 @@ describe('login and sync against a fake API', () => {
 
   it('sends every record once after the record rules change, then only new ones', async () => {
     await login(ctx);
+    const grokSession = join(root, '.grok', 'sessions', 'workspace', GROK_SESSION_ID);
+    await writeLines(join(grokSession, 'updates.jsonl'), GROK_LINES);
+    await writeFile(join(grokSession, 'summary.json'), JSON.stringify({ session_kind: 'main' }));
+    await writeFile(syncStatePath(ctx.env, ctx.home), JSON.stringify({ handle: 'ada', rulesVersion: 2 }));
     server.state.cursors = [
       { source: 'claude-code', lastOccurredAt: '2026-10-05T00:00:00.000Z' },
       { source: 'codex', lastOccurredAt: '2026-10-01T10:00:00.000Z' },
+      { source: 'grok-build', lastOccurredAt: '2026-10-05T00:00:00.000Z' },
     ];
     await sync(ctx, { quiet: true });
-    expect(server.state.uploads.flatMap((upload) => upload.records)).toHaveLength(7);
+    const uploaded = server.state.uploads.flatMap((upload) => upload.records);
+    expect(uploaded).toHaveLength(9);
+    expect(uploaded.filter((record) => record.source === 'grok-build')).toHaveLength(2);
     const state = JSON.parse(await readFile(syncStatePath(ctx.env, ctx.home), 'utf8')) as Record<string, unknown>;
     expect(state).toEqual({ handle: 'ada', rulesVersion: RECORD_RULES_VERSION });
     server.state.uploads.length = 0;
