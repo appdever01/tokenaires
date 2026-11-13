@@ -29,7 +29,8 @@
     "codex",
     "gemini-cli",
     "antigravity",
-    "opencode"
+    "opencode",
+    "grok-build"
   ],
   "license": "MIT",
   "devEngines": {
@@ -41,7 +42,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@tokenaires/contracts": "file:vendor/tokenaires-contracts-0.7.0.tgz",
+    "@tokenaires/contracts": "file:vendor/tokenaires-contracts-0.8.0.tgz",
     "@types/node": "^26.6.6",
     "commander": "^15.0.0",
     "eslint": "^10.14.0",

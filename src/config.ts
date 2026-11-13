@@ -29,6 +29,7 @@ export const ENV_KEYS = {
   zedHome: 'ZED_HOME',
   devinSessionsDir: 'DEVIN_SESSIONS_DIR',
   dshHome: 'DSH_HOME',
+  grokHome: 'GROK_HOME',
   noBrowser: 'TOKENAIRES_NO_BROWSER',
   noCache: 'TOKENAIRES_NO_CACHE',
 } as const;
@@ -50,7 +51,7 @@ export const TOP_MODELS_LIMIT = 5;
 export const SCAN_CACHE_FILE_NAME = 'scan-cache.json.gz';
 export const SCAN_CACHE_VERSION = 1;
 export const SYNC_STATE_FILE_NAME = 'sync-state.json';
-export const RECORD_RULES_VERSION = 2;
+export const RECORD_RULES_VERSION = 3;
 
 export const CONFIG_DIR_NAME = 'tokenaires';
 export const CONFIG_FILE_NAME = 'config.json';
@@ -88,6 +89,7 @@ export const SCHEDULE_ENV_PASSTHROUGH = [
   ENV_KEYS.zedHome,
   ENV_KEYS.devinSessionsDir,
   ENV_KEYS.dshHome,
+  ENV_KEYS.grokHome,
 ] as const;
 
 function trimSlash(url: string): string {

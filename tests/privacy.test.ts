@@ -3,6 +3,7 @@ import { batchBodies, prepareRecords, toUploadRecord, UPLOAD_FIELDS } from '@/pa
 import { scanLocal } from '@/scan';
 import { CLAUDE_CWD, CLAUDE_SECRET } from './fixtures/claude';
 import { DSH_SECRET } from './fixtures/deepseek-harness';
+import { GROK_SECRET } from './fixtures/grok-build';
 import { ANTIGRAVITY_SECRET } from './fixtures/antigravity';
 import { CODEX_SECRET } from './fixtures/codex';
 import { GEMINI_SECRET } from './fixtures/gemini';
@@ -92,7 +93,7 @@ describe('upload payload privacy across every source', () => {
 
   it('includes valid records from the new sources with only the nine fields', () => {
     const sources = new Set(records.map((record) => record.source));
-    expect([...sources].sort()).toEqual(['antigravity', 'claude-code', 'codex', 'deepseek-harness', 'gemini-cli', 'opencode']);
+    expect([...sources].sort()).toEqual(['antigravity', 'claude-code', 'codex', 'deepseek-harness', 'gemini-cli', 'grok-build', 'opencode']);
     for (const record of records) expect(Object.keys(record).sort()).toEqual(EXPECTED_KEYS);
     for (const record of records.filter((item) => item.source !== 'claude-code' && item.source !== 'codex')) {
       expect(record.recordId).toMatch(/^[A-Za-z0-9][A-Za-z0-9_.:-]{7,159}$/);
@@ -100,7 +101,7 @@ describe('upload payload privacy across every source', () => {
   });
 
   it('never includes prompts, project hashes, titles or paths from the new sources', () => {
-    for (const secret of [GEMINI_SECRET, ANTIGRAVITY_SECRET, OPENCODE_SECRET, DSH_SECRET, 'secret-project-hash', 'secret title', 'secret step payload', 'opencode-secret', 'ses_secretsession01', '/Users/']) {
+    for (const secret of [GEMINI_SECRET, ANTIGRAVITY_SECRET, OPENCODE_SECRET, DSH_SECRET, GROK_SECRET, 'secret-project-hash', 'secret title', 'secret step payload', 'opencode-secret', 'ses_secretsession01', '/Users/']) {
       expect(body).not.toContain(secret);
     }
   });

@@ -96,6 +96,11 @@ export function deepseekHarnessSessionsRoot(env: NodeJS.ProcessEnv, home: string
   return join(override ? expandHome(override, home) : join(home, '.dsh'), 'sessions');
 }
 
+export function grokBuildSessionsRoot(env: NodeJS.ProcessEnv, home: string): string {
+  const override = readEnv(env, ENV_KEYS.grokHome);
+  return join(override ? expandHome(override, home) : join(home, '.grok'), 'sessions');
+}
+
 export function kiloDataDir(env: NodeJS.ProcessEnv, home: string): string {
   return join(readEnv(env, ENV_KEYS.xdgData) ?? join(home, '.local', 'share'), 'kilo');
 }

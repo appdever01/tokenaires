@@ -2,7 +2,7 @@
 
 The command line client for Tokenaires, the public rich list for developers ranked by AI tokens used.
 
-It reads the usage logs your coding agents already keep on your machine, and uploads one small numeric record per model call. Your prompts, code and file paths never leave your computer.
+It reads the usage logs your coding agents already keep on your machine, and uploads one small numeric record per model call, or per prompt and model for Grok Build. Your prompts, code and file paths never leave your computer.
 
 ## Install and run
 
@@ -53,6 +53,7 @@ Everything is read locally. Text logs are read line by line, and only lines that
 - **Zed:** the agent thread database `threads/threads.db` in Zed's data folder: `~/Library/Application Support/Zed` on macOS, `%LOCALAPPDATA%\Zed` on Windows, and `$XDG_DATA_HOME/zed` (default `~/.local/share/zed`) or the Flatpak folder on Linux. `ZED_HOME` points at another data folder or at the folder holding `threads.db`. On Windows the Zed data inside WSL distros is read too. Each thread is zstd compressed JSON, and only the numeric counts under `request_token_usage` are read, one record per thread and user message. Zed keeps only the last model request of each turn there, so turns that ran several tool calls are under-counted, never over-counted. Entries Zed writes for a request that overflowed the context window carry no output and are skipped. Zed stores the model and update time per thread, not per message, so each new message takes the thread's model and last update time. Prompts, code, titles and conversation text are never read into records.
 - **Devin:** trajectory transcripts under `~/.local/share/devin/cli/transcripts` (macOS `~/Library/Application Support/devin/cli/transcripts`, Windows `%APPDATA%\devin\cli\transcripts`, or `DEVIN_SESSIONS_DIR` when set). Sessions inside WSL distros on Windows and sessions driven by the Devin Desktop IDE are read too. Each JSON trajectory file contains the session trajectory in ATIF format; only agent steps with a non-zero `completion_tokens` count are read, one record per session and step. ATIF counts cached tokens inside `prompt_tokens`, so they are split out of input. The record id is a hash of the session id, step id and step time, because Devin session names are short and repeat between people. Prompts, code, tools and conversation text are never read into records.
 - **DeepSeek Harness:** the session logs under `sessions/*/session-*/` in the DeepSeek Harness data folder, `~/.dsh` on every platform, or `DSH_HOME` when it points elsewhere. On Windows the data inside WSL distros is read too. Harness appends one zstd frame per session event to each `session.v*.jsonl.zstd`, so every frame is decompressed on its own; a torn frame at the end of a session still being written is skipped and everything before it is kept. Each `assistant/message` event with a usage block counts once, keyed by the session id and the message id, and labelled with the model the event reports. Prompts, replies, tool output, working directories and session titles are never read into records.
+- **Grok Build:** `updates.jsonl` files under `~/.grok/sessions` on macOS, Windows and Linux, or under `GROK_HOME/sessions` when `GROK_HOME` points elsewhere. Each completed turn contributes one exact aggregate per prompt and model, keyed by the prompt id and model name. This is not per model call because the usage log has no stable ids for those calls. Cached read and cache-creation tokens are split out of input, and reasoning tokens are already included in output. Turns marked incomplete and subagent sessions are skipped because the parent usage includes subagent totals. Prompts, replies, working directories and session titles are never read into records.
 - **Cursor:** not counted. Cursor keeps per message token counts at zero in its local database and only stores context window estimates, so there is nothing exact to read.
 
 ## What is uploaded
@@ -61,8 +62,8 @@ Exactly these fields per record, and nothing else:
 
 | Field | Example |
 | --- | --- |
-| `source` | `claude-code`, `codex`, `gemini-cli`, `antigravity`, `opencode`, `kimi-code`, `qwen-code`, `copilot-cli`, `cline`, `roo-code`, `kilo-code`, `zcode`, `zed`, `devin` or `deepseek-harness` |
-| `recordId` | the tool's own id for the call: the Claude message and request id, the Codex session id and line number, the Gemini session and message id, the Antigravity conversation and response id, the OpenCode or Kilo message id, the Kimi Code session, agent and line or the kimi-cli message id, a hash of the Copilot session, row and time, the Qwen message id, the Cline or Roo task and request time, the ZCode request id, the Zed thread and message id, a hash of the Devin session, step and time, or the DeepSeek Harness session and message id |
+| `source` | `claude-code`, `codex`, `gemini-cli`, `antigravity`, `opencode`, `kimi-code`, `qwen-code`, `copilot-cli`, `cline`, `roo-code`, `kilo-code`, `zcode`, `zed`, `devin`, `deepseek-harness` or `grok-build` |
+| `recordId` | the tool's own id for the call: the Claude message and request id, the Codex session id and line number, the Gemini session and message id, the Antigravity conversation and response id, the OpenCode or Kilo message id, the Kimi Code session, agent and line or the kimi-cli message id, a hash of the Copilot session, row and time, the Qwen message id, the Cline or Roo task and request time, the ZCode request id, the Zed thread and message id, a hash of the Devin session and step, the DeepSeek Harness session and message id, or the Grok prompt id and model |
 | `model` | `claude-opus-5-5` |
 | `occurredAt` | `2026-11-03T10:15:00.000Z` |
 | `inputTokens` | uncached input tokens |
@@ -107,6 +108,7 @@ Each sync asks the server for your latest record per source and sends records fr
 | `ZED_HOME` | unset. Zed data folder, or the folder holding `threads.db`. |
 | `DEVIN_SESSIONS_DIR` | unset. Devin CLI data folder, or the folder holding its `transcripts`. |
 | `DSH_HOME` | `~/.dsh` |
+| `GROK_HOME` | `~/.grok` |
 | `TOKENAIRES_NO_CACHE` | unset. Set it to scan without the local scan cache. |
 
 For local development against the backend:
