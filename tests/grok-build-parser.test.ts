@@ -72,12 +72,10 @@ describe('Grok Build parser', () => {
     ).toEqual([parentLog]);
   });
 
-  it('fails closed when session metadata is missing', async () => {
+  it('skips sessions without metadata', async () => {
     const updates = join(root, '.grok', 'sessions', 'workspace', GROK_SESSION_ID, 'updates.jsonl');
     await writeLines(updates, GROK_LINES);
 
-    await expect(
-    grokBuildSource.discover({ home: root, env: {}, platform: 'linux' }),
-    ).rejects.toThrow();
+    await expect(grokBuildSource.discover({ home: root, env: {}, platform: 'linux' })).resolves.toEqual([]);
   });
 });
