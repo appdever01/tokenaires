@@ -2,7 +2,7 @@ import { useId } from "react";
 import type { AgentSource } from "@tokenaires/contracts";
 import { AGENT_SOURCE_LABELS } from "@tokenaires/contracts";
 import type { IconBaseProps, IconType } from "react-icons";
-import { RiOpenaiFill } from "react-icons/ri";
+import { RiOpenaiFill, RiGrokAiFill } from "react-icons/ri";
 import { SiClaude, SiCline, SiDeepseek, SiGithubcopilot, SiGooglegemini, SiMoonshotai, SiOpencode, SiQwen, SiZedindustries } from "react-icons/si";
 import { cn } from "@/lib/utils";
 
@@ -135,6 +135,7 @@ const ICONS: Record<AgentSource, IconType> = {
   zed: SiZedindustries,
   devin: DevinIcon,
   "deepseek-harness": SiDeepseek,
+  "grok-build": RiGrokAiFill,
 };
 
 const TINTS: Record<AgentSource, string> = {
@@ -153,6 +154,7 @@ const TINTS: Record<AgentSource, string> = {
   zed: "text-t2",
   devin: "text-t2",
   "deepseek-harness": "text-deepseek",
+  "grok-build": "text-t2",
 };
 
 export function SourceIcon({ source, className }: { source: AgentSource; className?: string }) {

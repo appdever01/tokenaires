@@ -30,8 +30,8 @@ importers:
         specifier: ^5.105.2
         version: 5.105.2(@types/react@19.3.0)(react@19.3.0)
       '@tokenaires/contracts':
-        specifier: file:vendor/tokenaires-contracts-0.7.0.tgz
-        version: file:vendor/tokenaires-contracts-0.7.0.tgz
+        specifier: file:vendor/tokenaires-contracts-0.8.0.tgz
+        version: file:vendor/tokenaires-contracts-0.8.0.tgz
       axios:
         specifier: ^1.21.0
         version: 1.21.0
@@ -1024,9 +1024,9 @@ packages:
       '@types/react':
         optional: true
 
-  '@tokenaires/contracts@file:vendor/tokenaires-contracts-0.7.0.tgz':
-    resolution: {integrity: sha512-Gs3IBof0LPbwCBvcOewINQSN4zg641DufhMqMTzaNScEoqutw4jXDabl3R2GyZPiW0X8zcXaWkUDkINneDLrzg==, tarball: file:vendor/tokenaires-contracts-0.7.0.tgz}
-    version: 0.7.0
+  '@tokenaires/contracts@file:vendor/tokenaires-contracts-0.8.0.tgz':
+    resolution: {integrity: sha512-X5jnDJmC1SjC/zkbejaW4D5mXW1+K3lfF6a/tNl0nZxRr6ShkAE3PH5ppG1XZ7fTxMSKW+vBlJtoNCUwVqvHfg==, tarball: file:vendor/tokenaires-contracts-0.8.0.tgz}
+    version: 0.8.0
 
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -3677,7 +3677,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  '@tokenaires/contracts@file:vendor/tokenaires-contracts-0.7.0.tgz':
+  '@tokenaires/contracts@file:vendor/tokenaires-contracts-0.8.0.tgz':
     dependencies:
       zod: 4.6.7
 
