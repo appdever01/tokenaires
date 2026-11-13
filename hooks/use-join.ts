@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "nextjs-toploader/app";
+import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { useCopy } from "@/hooks/use-copy";

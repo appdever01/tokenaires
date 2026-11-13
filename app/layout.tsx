@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import type { ReactNode } from "react";
-import NextTopLoader from "nextjs-toploader";
 import { Providers } from "@/components/layout/providers";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -31,7 +30,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={aspekta.variable} suppressHydrationWarning>
       <body>
-        <NextTopLoader />
         <Providers>
           <div className="flex min-h-dvh flex-col">
             <SiteHeader />
