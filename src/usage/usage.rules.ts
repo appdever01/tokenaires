@@ -23,6 +23,7 @@ export const RECORD_ID_PATTERNS: Record<AgentSource, RegExp> = {
   zed: NATIVE_RECORD_ID,
   devin: NATIVE_RECORD_ID,
   'deepseek-harness': NATIVE_RECORD_ID,
+  'grok-build': NATIVE_RECORD_ID,
 };
 
 export const SOURCE_LAUNCH_DATES: Record<AgentSource, string> = {
@@ -41,6 +42,7 @@ export const SOURCE_LAUNCH_DATES: Record<AgentSource, string> = {
   zed: '2025-01-01T00:00:00Z',
   devin: '2026-04-01T00:00:00Z',
   'deepseek-harness': '2026-08-12T00:00:00Z',
+  'grok-build': '2026-07-15T00:00:00Z',
 };
 
 export const MODEL_RELEASE_DATES: ReadonlyArray<{

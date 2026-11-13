@@ -16,6 +16,7 @@ export const AGENT_SOURCES = [
   'zed',
   'devin',
   'deepseek-harness',
+  'grok-build',
 ] as const;
 
 export const AgentSourceSchema = z.enum(AGENT_SOURCES);
@@ -37,4 +38,5 @@ export const AGENT_SOURCE_LABELS: Record<AgentSource, string> = {
   zed: 'Zed',
   devin: 'Devin',
   'deepseek-harness': 'DeepSeek Harness',
+  'grok-build': 'Grok Build',
 };
