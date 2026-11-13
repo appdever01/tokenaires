@@ -4,6 +4,7 @@ import { AGENT_SOURCE_LABELS } from "@tokenaires/contracts";
 import type { IconBaseProps, IconType } from "react-icons";
 import { RiOpenaiFill } from "react-icons/ri";
 import { SiClaude, SiCline, SiDeepseek, SiGithubcopilot, SiGooglegemini, SiMoonshotai, SiOpencode, SiQwen, SiZedindustries } from "react-icons/si";
+import { VscVscode } from "react-icons/vsc";
 import { cn } from "@/lib/utils";
 
 function AntigravityIcon({ className, ...props }: IconBaseProps) {
@@ -135,6 +136,7 @@ const ICONS: Record<AgentSource, IconType> = {
   zed: SiZedindustries,
   devin: DevinIcon,
   "deepseek-harness": SiDeepseek,
+  vscode: VscVscode,
 };
 
 const TINTS: Record<AgentSource, string> = {
@@ -153,6 +155,7 @@ const TINTS: Record<AgentSource, string> = {
   zed: "text-t2",
   devin: "text-t2",
   "deepseek-harness": "text-deepseek",
+  vscode: "text-vscode",
 };
 
 export function SourceIcon({ source, className }: { source: AgentSource; className?: string }) {

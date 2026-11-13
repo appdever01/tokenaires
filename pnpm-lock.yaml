@@ -1025,7 +1025,7 @@ packages:
         optional: true
 
   '@tokenaires/contracts@file:vendor/tokenaires-contracts-0.7.0.tgz':
-    resolution: {integrity: sha512-Gs3IBof0LPbwCBvcOewINQSN4zg641DufhMqMTzaNScEoqutw4jXDabl3R2GyZPiW0X8zcXaWkUDkINneDLrzg==, tarball: file:vendor/tokenaires-contracts-0.7.0.tgz}
+    resolution: {integrity: sha512-ZQ2zt/c6+qgEgHqTQ13FNnVw2Y/Gt8MZYt82KUOxHTkTAleT62V+wPq0IqD4OjdSX9UtNcdks7Ml9mMSFVUkHg==, tarball: file:vendor/tokenaires-contracts-0.7.0.tgz}
     version: 0.7.0
 
   '@types/chai@5.2.3':
