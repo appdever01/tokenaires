@@ -41,7 +41,7 @@ The API runs on http://localhost:7020/api/v1.
 | `POST /usage/batches` | token + signature | Upload up to 2,000 usage records |
 | `GET /me` | token | Rank, tier and sync cursors for the CLI |
 | `POST /auth/logout` | token | Revoke this device's token |
-| `GET /boards?period=all\|month\|week&source=all\|claude-code\|codex&page=1` | none | A page of the board |
+| `GET /boards?period=all\|month\|week&source=all\|claude-code\|codex\|grok-build&page=1` | none | A page of the board |
 | `GET /stats` | none | Developers and token totals |
 | `GET /users/:handle` | none | Public profile |
 | `GET /health` | none | Liveness |

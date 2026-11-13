@@ -57,6 +57,7 @@ describe('evaluateRecord', () => {
       'deepseek-harness',
       'session-2c78dd9c-1095-4b96-9cd1-ee3dad5c7253:1e706ed0-3b3b-4c9d-ac27-a322069a1ade',
     ],
+    ['grok-build', '018f8a11-2233-4455-6677-8899aabbccdd:grok-4.7'],
   ] as const)('accepts a native %s record id', (source, recordId) => {
     expect(
       evaluateRecord({ ...base, source, recordId, model: 'gemini-3-pro' }, now),
@@ -113,6 +114,21 @@ describe('evaluateRecord', () => {
     ).toBe('before_source_launch');
     expect(
       evaluateRecord({ ...harness, occurredAt: '2026-08-12T00:00:00Z' }, now),
+    ).toBeNull();
+  });
+
+  it('refuses Grok Build records older than its public session store', () => {
+    const grok = {
+      ...base,
+      source: 'grok-build' as const,
+      recordId: '018f8a11-2233-4455-6677-8899aabbccdd:grok-4.7',
+      model: 'grok-4.7',
+    };
+    expect(
+      evaluateRecord({ ...grok, occurredAt: '2026-07-14T23:59:59Z' }, now),
+    ).toBe('before_source_launch');
+    expect(
+      evaluateRecord({ ...grok, occurredAt: '2026-07-15T00:00:00Z' }, now),
     ).toBeNull();
   });
 
