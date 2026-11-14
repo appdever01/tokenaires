@@ -18,10 +18,11 @@ import { openCodeSource } from '@/sources/opencode';
 import { qwenSource } from '@/sources/qwen';
 import { zcodeSource } from '@/sources/zcode';
 import { zedSource } from '@/sources/zed';
+import { vscodeSource } from '@/sources/vscode';
 import { devinSource } from '@/sources/devin';
 import type { LogSource, SourceContext } from '@/sources/types';
 
-export const LOG_SOURCES: readonly LogSource[] = [claudeSource, codexSource, geminiSource, antigravitySource, openCodeSource, kimiSource, qwenSource, copilotSource, clineSource, rooSource, kiloSource, zcodeSource, zedSource, devinSource, deepseekHarnessSource];
+export const LOG_SOURCES: readonly LogSource[] = [claudeSource, codexSource, geminiSource, antigravitySource, openCodeSource, kimiSource, qwenSource, copilotSource, clineSource, rooSource, kiloSource, zcodeSource, zedSource, devinSource, deepseekHarnessSource, vscodeSource];
 
 export interface ScanOptions {
   env: NodeJS.ProcessEnv;

@@ -27,6 +27,7 @@ export const ENV_KEYS = {
   clineData: 'CLINE_DATA_DIR',
   clineSessions: 'CLINE_SESSION_DATA_DIR',
   zedHome: 'ZED_HOME',
+  vscodeDataDir: 'VSCODE_DATA_DIR',
   devinSessionsDir: 'DEVIN_SESSIONS_DIR',
   dshHome: 'DSH_HOME',
   noBrowser: 'TOKENAIRES_NO_BROWSER',
@@ -86,6 +87,7 @@ export const SCHEDULE_ENV_PASSTHROUGH = [
   ENV_KEYS.clineSessions,
   ENV_KEYS.openCodeDbPrefix,
   ENV_KEYS.zedHome,
+  ENV_KEYS.vscodeDataDir,
   ENV_KEYS.devinSessionsDir,
   ENV_KEYS.dshHome,
 ] as const;
