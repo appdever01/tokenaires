@@ -77,4 +77,49 @@ describe('Antigravity parser', () => {
     expect(records).toHaveLength(2);
     expect(after).toEqual(before);
   });
+
+  it('discovers conversations stored in T3 Code provider sandboxes', async () => {
+    const t3Path = join(root, '.t3', 'userdata', 'providers', 'antigravity', 'test-instance', 'antigravity-acp', 'conversations', `${ANTIGRAVITY_CASCADE}.db`);
+    (await createConversation(t3Path, rows)).close();
+    const result = await scanLocal({ env: {}, home: root, cachePath: null });
+    expect(result.files.antigravity).toBe(1);
+    expect(result.records.filter((record) => record.source === 'antigravity')).toHaveLength(2);
+  });
+
+  it('honors T3_USERDATA when discovering T3 Code provider sandboxes', async () => {
+    const customUserdata = join(root, 'custom-t3-userdata');
+    const t3Path = join(customUserdata, 'providers', 'antigravity', 'test-instance', 'antigravity-acp', 'conversations', `${ANTIGRAVITY_CASCADE}.db`);
+    (await createConversation(t3Path, rows)).close();
+    const result = await scanLocal({ env: { T3_USERDATA: customUserdata }, home: root, cachePath: null });
+    expect(result.files.antigravity).toBe(1);
+    expect(result.records.filter((record) => record.source === 'antigravity')).toHaveLength(2);
+  });
+  it('falls back to root request id when chat usage response id is omitted', async () => {
+    const fallbackRows = {
+      generations: [
+        generation({
+          requestId: 'req-root-fallback-0001',
+          model: 'Gemini Test Pro (High)',
+          createdAt: '2026-10-06T09:00:00.000Z',
+          usage: { input: 500, output: 80 },
+        }),
+      ],
+      steps: [],
+    };
+    (await createConversation(dbPath, fallbackRows)).close();
+    const records = (await antigravitySource.parse(dbPath)) ?? [];
+    expect(records).toEqual([
+      {
+        source: 'antigravity',
+        recordId: `${ANTIGRAVITY_CASCADE}:req-root-fallback-0001`,
+        model: 'Gemini Test Pro (High)',
+        occurredAt: '2026-10-06T09:00:00.000Z',
+        inputTokens: 500,
+        outputTokens: 80,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        reasoningTokens: 0,
+      },
+    ]);
+  });
 });

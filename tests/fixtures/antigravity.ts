@@ -8,6 +8,7 @@ const timestamp = (number: number, iso: string): Uint8Array => protoBytes(number
 
 interface GenerationSpec {
   responseId?: string;
+  requestId?: string;
   usage: Partial<Record<'input' | 'output' | 'cacheWrite' | 'cacheRead' | 'thinking' | 'response', number>>;
   createdAt?: string;
   model?: string;
@@ -26,7 +27,7 @@ export function generation(spec: GenerationSpec): Uint8Array {
     protoBytes(20, protoMessage(protoBytes(1, 'model_enum'), protoBytes(2, 'MODEL_PLACEHOLDER_M71'))),
     ...(spec.model ? [protoBytes(21, spec.model)] : []),
   );
-  return protoMessage(protoBytes(1, chat), protoBytes(2, Uint8Array.from(spec.steps ?? [])));
+  return protoMessage(protoBytes(1, chat), protoBytes(2, Uint8Array.from(spec.steps ?? [])), ...(spec.requestId ? [protoBytes(4, spec.requestId)] : []));
 }
 
 export function stepMetadata(iso: string): Uint8Array {

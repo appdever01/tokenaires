@@ -1,3 +1,4 @@
+import { listDir } from '@/files/walk';
 import { delimiter, isAbsolute, join } from 'node:path';
 import { ENV_KEYS, readEnv } from '@/config';
 
@@ -67,8 +68,19 @@ export function geminiTmpRoot(env: NodeJS.ProcessEnv, home: string): string {
   return join(readEnv(env, ENV_KEYS.geminiHome) ?? home, '.gemini', 'tmp');
 }
 
+export function t3UserdataDir(env: NodeJS.ProcessEnv, home: string): string {
+  const override = readEnv(env, ENV_KEYS.t3Userdata);
+  return override ? expandHome(override, home) : join(home, '.t3', 'userdata');
+}
+
 export function antigravityRoots(home: string): string[] {
   return ANTIGRAVITY_APPS.map((app) => join(home, '.gemini', app, 'conversations'));
+}
+
+export async function t3AntigravityRoots(env: NodeJS.ProcessEnv, home: string): Promise<string[]> {
+  const base = join(t3UserdataDir(env, home), 'providers', 'antigravity');
+  const instances = await listDir(base);
+  return instances.map((instance) => join(base, instance, 'antigravity-acp', 'conversations'));
 }
 
 export function openCodeDataDir(env: NodeJS.ProcessEnv, home: string): string {

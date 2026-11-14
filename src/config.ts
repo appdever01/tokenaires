@@ -29,6 +29,7 @@ export const ENV_KEYS = {
   zedHome: 'ZED_HOME',
   devinSessionsDir: 'DEVIN_SESSIONS_DIR',
   dshHome: 'DSH_HOME',
+  t3Userdata: 'T3_USERDATA',
   noBrowser: 'TOKENAIRES_NO_BROWSER',
   noCache: 'TOKENAIRES_NO_CACHE',
 } as const;
@@ -88,6 +89,7 @@ export const SCHEDULE_ENV_PASSTHROUGH = [
   ENV_KEYS.zedHome,
   ENV_KEYS.devinSessionsDir,
   ENV_KEYS.dshHome,
+  ENV_KEYS.t3Userdata,
 ] as const;
 
 function trimSlash(url: string): string {
