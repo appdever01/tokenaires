@@ -14,6 +14,7 @@ export const AGENT_SOURCES = [
   'kilo-code',
   'zcode',
   'zed',
+  'vscode',
   'devin',
   'deepseek-harness',
 ] as const;
@@ -35,6 +36,7 @@ export const AGENT_SOURCE_LABELS: Record<AgentSource, string> = {
   'kilo-code': 'Kilo Code',
   zcode: 'ZCode',
   zed: 'Zed',
+  vscode: 'VS Code',
   devin: 'Devin',
   'deepseek-harness': 'DeepSeek Harness',
 };

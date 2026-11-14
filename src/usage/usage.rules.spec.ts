@@ -52,6 +52,10 @@ describe('evaluateRecord', () => {
       'zed',
       '8e484826-f0f6-42bf-8b71-c9d22bd35c5c:01d380b8-79b4-447e-a6fb-a8300858a7ae',
     ],
+    [
+      'vscode',
+      '3cb8431e-3d10-4455-a041-0cbe8166537d:request_96f44ac8-cbf1-4033-9835-5b6f3d5bcc95',
+    ],
     ['devin', 'devin-3f9a1c0e7b2d4e6f8a1b3c5d7e9f0a2b'],
     [
       'deepseek-harness',
@@ -129,6 +133,22 @@ describe('evaluateRecord', () => {
     ).toBe('before_source_launch');
     expect(
       evaluateRecord({ ...zed, occurredAt: '2025-02-01T00:00:00Z' }, now),
+    ).toBeNull();
+  });
+
+  it('refuses VS Code records older than its agent store launch', () => {
+    const vscode = {
+      ...base,
+      source: 'vscode' as const,
+      recordId:
+        '3cb8431e-3d10-4455-a041-0cbe8166537d:request_96f44ac8-cbf1-4033-9835-5b6f3d5bcc95',
+      model: 'gpt-6-luna',
+    };
+    expect(
+      evaluateRecord({ ...vscode, occurredAt: '2026-07-31T00:00:00Z' }, now),
+    ).toBe('before_source_launch');
+    expect(
+      evaluateRecord({ ...vscode, occurredAt: '2026-08-15T00:00:00Z' }, now),
     ).toBeNull();
   });
 
