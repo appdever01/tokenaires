@@ -70,7 +70,8 @@ export function antigravityRecord(cascadeId: string, row: GenerationRow, stepTim
   const root = decodeProto(row.data);
   const chat = protoMessage(root, CHAT);
   const usage = protoMessage(chat, CHAT_USAGE);
-  const recordId = nativeId(cascadeId, protoText(protoField(usage, USAGE.responseId)));
+  const rawId = protoText(protoField(usage, USAGE.responseId)) ?? protoText(protoField(root, 4));
+  const recordId = nativeId(cascadeId, rawId);
   const model = modelName(chat);
   const when = occurredAt(root, chat, stepTimes);
   if (!recordId || !model || !when) return null;

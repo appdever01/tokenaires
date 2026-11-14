@@ -3,7 +3,7 @@ import type { UsageRecord } from '@tokenaires/contracts';
 import type { DatabaseSync } from 'node:sqlite';
 import { findAll, type FileFilter } from '@/files/walk';
 import { antigravityRecord, stepTime } from '@/parsers/antigravity';
-import { antigravityRoots } from '@/parsers/paths';
+import { antigravityRoots, t3AntigravityRoots } from '@/parsers/paths';
 import { dbSignature, withReadOnlyDb } from '@/sqlite/open';
 import type { LogSource } from '@/sources/types';
 
@@ -11,7 +11,7 @@ const DB_SUFFIX = '.db';
 const GENERATIONS = 'SELECT data FROM gen_metadata ORDER BY idx';
 const STEPS = 'SELECT idx, metadata FROM steps';
 
-const isConversation: FileFilter = (path, name) => path.split(/[\\/]/).includes('conversations') && name.endsWith(DB_SUFFIX);
+const isConversation: FileFilter = (_path, name) => name.endsWith(DB_SUFFIX);
 
 function bytes(value: unknown): Uint8Array | null {
   return value instanceof Uint8Array ? value : null;
@@ -43,7 +43,10 @@ export function readConversation(db: DatabaseSync, cascadeId: string): UsageReco
 
 export const antigravitySource: LogSource = {
   source: 'antigravity',
-  discover: (ctx) => findAll(antigravityRoots(ctx.env, ctx.home), isConversation),
+  discover: async (ctx) => {
+    const t3Roots = await t3AntigravityRoots(ctx.env, ctx.home);
+    return findAll([...antigravityRoots(ctx.home), ...t3Roots], isConversation);
+  },
   parse: (path) => withReadOnlyDb(path, (db) => readConversation(db, basename(path, DB_SUFFIX))),
   signature: dbSignature,
 };

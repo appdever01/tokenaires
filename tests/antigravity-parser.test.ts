@@ -94,4 +94,32 @@ describe('Antigravity parser', () => {
     expect(result.files.antigravity).toBe(1);
     expect(result.records.filter((record) => record.source === 'antigravity')).toHaveLength(2);
   });
+  it('falls back to root request id when chat usage response id is omitted', async () => {
+    const fallbackRows = {
+      generations: [
+        generation({
+          requestId: 'req-root-fallback-0001',
+          model: 'Gemini Test Pro (High)',
+          createdAt: '2026-10-06T09:00:00.000Z',
+          usage: { input: 500, output: 80 },
+        }),
+      ],
+      steps: [],
+    };
+    (await createConversation(dbPath, fallbackRows)).close();
+    const records = (await antigravitySource.parse(dbPath)) ?? [];
+    expect(records).toEqual([
+      {
+        source: 'antigravity',
+        recordId: `${ANTIGRAVITY_CASCADE}:req-root-fallback-0001`,
+        model: 'Gemini Test Pro (High)',
+        occurredAt: '2026-10-06T09:00:00.000Z',
+        inputTokens: 500,
+        outputTokens: 80,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        reasoningTokens: 0,
+      },
+    ]);
+  });
 });
