@@ -67,8 +67,14 @@ export function geminiTmpRoot(env: NodeJS.ProcessEnv, home: string): string {
   return join(readEnv(env, ENV_KEYS.geminiHome) ?? home, '.gemini', 'tmp');
 }
 
-export function antigravityRoots(home: string): string[] {
-  return ANTIGRAVITY_APPS.map((app) => join(home, '.gemini', app, 'conversations'));
+export function t3UserdataDir(env: NodeJS.ProcessEnv, home: string): string {
+  const override = readEnv(env, ENV_KEYS.t3Userdata);
+  return override ? expandHome(override, home) : join(home, '.t3', 'userdata');
+}
+
+export function antigravityRoots(env: NodeJS.ProcessEnv, home: string): string[] {
+  const t3Providers = join(t3UserdataDir(env, home), 'providers', 'antigravity');
+  return [...ANTIGRAVITY_APPS.map((app) => join(home, '.gemini', app, 'conversations')), t3Providers];
 }
 
 export function openCodeDataDir(env: NodeJS.ProcessEnv, home: string): string {

@@ -77,4 +77,21 @@ describe('Antigravity parser', () => {
     expect(records).toHaveLength(2);
     expect(after).toEqual(before);
   });
+
+  it('discovers conversations stored in T3 Code provider sandboxes', async () => {
+    const t3Path = join(root, '.t3', 'userdata', 'providers', 'antigravity', 'test-instance', 'antigravity-acp', 'conversations', `${ANTIGRAVITY_CASCADE}.db`);
+    (await createConversation(t3Path, rows)).close();
+    const result = await scanLocal({ env: {}, home: root, cachePath: null });
+    expect(result.files.antigravity).toBe(1);
+    expect(result.records.filter((record) => record.source === 'antigravity')).toHaveLength(2);
+  });
+
+  it('honors T3_USERDATA when discovering T3 Code provider sandboxes', async () => {
+    const customUserdata = join(root, 'custom-t3-userdata');
+    const t3Path = join(customUserdata, 'providers', 'antigravity', 'test-instance', 'antigravity-acp', 'conversations', `${ANTIGRAVITY_CASCADE}.db`);
+    (await createConversation(t3Path, rows)).close();
+    const result = await scanLocal({ env: { T3_USERDATA: customUserdata }, home: root, cachePath: null });
+    expect(result.files.antigravity).toBe(1);
+    expect(result.records.filter((record) => record.source === 'antigravity')).toHaveLength(2);
+  });
 });

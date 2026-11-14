@@ -11,7 +11,7 @@ const DB_SUFFIX = '.db';
 const GENERATIONS = 'SELECT data FROM gen_metadata ORDER BY idx';
 const STEPS = 'SELECT idx, metadata FROM steps';
 
-const isConversation: FileFilter = (_path, name) => name.endsWith(DB_SUFFIX);
+const isConversation: FileFilter = (path, name) => path.split(/[\\/]/).includes('conversations') && name.endsWith(DB_SUFFIX);
 
 function bytes(value: unknown): Uint8Array | null {
   return value instanceof Uint8Array ? value : null;
@@ -43,7 +43,7 @@ export function readConversation(db: DatabaseSync, cascadeId: string): UsageReco
 
 export const antigravitySource: LogSource = {
   source: 'antigravity',
-  discover: (ctx) => findAll(antigravityRoots(ctx.home), isConversation),
+  discover: (ctx) => findAll(antigravityRoots(ctx.env, ctx.home), isConversation),
   parse: (path) => withReadOnlyDb(path, (db) => readConversation(db, basename(path, DB_SUFFIX))),
   signature: dbSignature,
 };
